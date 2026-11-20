@@ -1,0 +1,2758 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Alat Berat 2026 — Sistem Manajemen Armada &amp; Preventive Maintenance</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: JetBrains Mono & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Konfigurasi Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        forest: {
+                            DEFAULT: '#113D23',
+                            dark: '#0B2917',
+                            light: '#1B5734',
+                            bar: '#15803d',
+                        },
+                        warm: {
+                            bg: '#ECE9E1',
+                            card: '#FFFFFF',
+                            panel: '#F7F5F0',
+                            border: '#D8D3C8',
+                            input: '#FCFBF8',
+                            text: '#18181B',
+                            muted: '#52525B',
+                        },
+                        safety: {
+                            orange: '#EA580C',
+                            orangeHover: '#C2410C',
+                        },
+                        gold: {
+                            focus: '#B45309',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Menghilangkan panah spinner bawaan input number agar bersih */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* Animasi halus untuk progress bar dan kartu status */
+        .progress-fill {
+            transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.25s ease;
+        }
+        .target-marker {
+            transition: left 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .status-card-transition {
+            transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f4f4f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Print-Friendly Styles untuk Kertas A4 */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 12mm;
+            }
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+                color: #000000 !important;
+                font-size: 11px !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .print-container {
+                max-width: 100% !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            header {
+                background-color: #113D23 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                padding: 12px 16px !important;
+            }
+            .progress-fill, .status-badge, #serviceStatusCard {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .print-break-inside {
+                break-inside: avoid;
+                margin-bottom: 12px !important;
+            }
+            input, select {
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-warm-bg text-warm-text min-h-screen p-3 sm:p-5 lg:p-6 antialiased selection:bg-forest selection:text-white">
+
+    <!-- Toast Notification Container (Pengganti alert() bawaan browser) -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0 no-print"></div>
+
+    <!-- Modal Konfirmasi Kustom (Pengganti confirm() bawaan browser) -->
+    <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4 no-print" role="dialog" aria-modal="true">
+        <div class="bg-white rounded-2xl border border-warm-border shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div class="flex items-start gap-3.5">
+                <div id="modalIconWrap" class="w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 id="modalTitle" class="font-bold text-base text-warm-text">Konfirmasi Tindakan</h3>
+                    <p id="modalMessage" class="text-sm text-warm-muted mt-1 leading-relaxed">Apakah Anda yakin ingin melanjutkan?</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button id="modalCancelBtn" type="button" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-warm-muted hover:bg-warm-panel border border-warm-border transition-colors cursor-pointer">
+                    Batal
+                </button>
+                <button id="modalConfirmBtn" type="button" class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-colors cursor-pointer">
+                    Ya, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: TAMBAH UNIT BARU (PRESET KATEGORI 1-KLIK & LIVE PREVIEW) -->
+    <div id="addUnitModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto no-print" role="dialog" aria-modal="true">
+        <div class="bg-warm-card rounded-2xl border border-warm-border shadow-2xl max-w-4xl w-full my-auto overflow-hidden flex flex-col max-h-[92vh]">
+            
+            <!-- Header Modal -->
+            <div class="bg-forest px-5 py-4 sm:px-6 flex items-center justify-between text-white shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-safety-orange text-white flex items-center justify-center shadow-sm">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-mono font-bold text-base sm:text-lg tracking-tight">Tambah Unit Alat Berat Baru</h3>
+                        <p class="text-xs text-emerald-100/80">Pilih preset kategori untuk pengisian standar teknis otomatis</p>
+                    </div>
+                </div>
+                <button id="btnCloseAddModal" type="button" class="p-2 rounded-xl text-emerald-100 hover:text-white hover:bg-white/10 transition-colors cursor-pointer" title="Tutup">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Body Modal (Scrollable) -->
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-5 bg-warm-panel/60">
+                
+                <!-- 1-Klik Preset Kategori Alat Berat -->
+                <div class="bg-white border border-warm-border rounded-xl p-4 shadow-2xs">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                        <span class="font-mono text-xs font-bold uppercase tracking-wider text-forest">
+                            1. Preset Kategori Alat (1-Klik Auto-Fill)
+                        </span>
+                        <span class="font-mono text-[11px] text-warm-muted">Menyarankan Kode Unit unik, Interval PM &amp; Standar BBM</span>
+                    </div>
+                    <div id="presetButtonsGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                        <button type="button" data-preset="EXCAVATOR" class="preset-btn px-2.5 py-2 rounded-xl border border-forest bg-emerald-50 text-forest font-mono text-xs font-bold text-left transition-all cursor-pointer">
+                            <div>Excavator</div>
+                            <div class="text-[10px] font-normal opacity-80">16 L/HM</div>
+                        </button>
+                        <button type="button" data-preset="DUMP_TRUCK" class="preset-btn px-2.5 py-2 rounded-xl border border-warm-border bg-warm-input text-warm-text font-mono text-xs font-bold text-left hover:border-forest transition-all cursor-pointer">
+                            <div>Dump Truck</div>
+                            <div class="text-[10px] font-normal text-warm-muted">13,5 L/HM</div>
+                        </button>
+                        <button type="button" data-preset="BULLDOZER" class="preset-btn px-2.5 py-2 rounded-xl border border-warm-border bg-warm-input text-warm-text font-mono text-xs font-bold text-left hover:border-forest transition-all cursor-pointer">
+                            <div>Bulldozer</div>
+                            <div class="text-[10px] font-normal text-warm-muted">18 L/HM</div>
+                        </button>
+                        <button type="button" data-preset="WHEEL_LOADER" class="preset-btn px-2.5 py-2 rounded-xl border border-warm-border bg-warm-input text-warm-text font-mono text-xs font-bold text-left hover:border-forest transition-all cursor-pointer">
+                            <div>Wheel Loader</div>
+                            <div class="text-[10px] font-normal text-warm-muted">14,5 L/HM</div>
+                        </button>
+                        <button type="button" data-preset="MOTOR_GRADER" class="preset-btn px-2.5 py-2 rounded-xl border border-warm-border bg-warm-input text-warm-text font-mono text-xs font-bold text-left hover:border-forest transition-all cursor-pointer">
+                            <div>Motor Grader</div>
+                            <div class="text-[10px] font-normal text-warm-muted">13 L/HM</div>
+                        </button>
+                        <button type="button" data-preset="COMPACTOR" class="preset-btn px-2.5 py-2 rounded-xl border border-warm-border bg-warm-input text-warm-text font-mono text-xs font-bold text-left hover:border-forest transition-all cursor-pointer">
+                            <div>Compactor</div>
+                            <div class="text-[10px] font-normal text-warm-muted">10,5 L/HM</div>
+                        </button>
+                        <button type="button" data-preset="CUSTOM" class="preset-btn px-2.5 py-2 rounded-xl border border-warm-border bg-warm-input text-warm-text font-mono text-xs font-bold text-left hover:border-forest transition-all cursor-pointer">
+                            <div>Lainnya</div>
+                            <div class="text-[10px] font-normal text-warm-muted">Custom</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Form 3 Kolom Terstruktur -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    
+                    <!-- Kolom A: Identitas Unit -->
+                    <div class="bg-white border border-warm-border rounded-xl p-4 space-y-3 shadow-2xs">
+                        <h4 class="font-mono font-bold text-xs uppercase tracking-wider text-warm-text border-b border-warm-border pb-2">
+                            A. Identitas &amp; Status Unit
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="newKodeUnit" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Kode Unit *</label>
+                                <input type="text" id="newKodeUnit" placeholder="EX-02" class="w-full font-mono font-bold text-sm uppercase bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                            <div>
+                                <label for="newStatusOperasi" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Status Operasi</label>
+                                <select id="newStatusOperasi" class="w-full font-mono text-xs font-bold bg-warm-input border border-warm-border rounded-xl px-2.5 py-2.5 focus:outline-none focus:border-forest">
+                                    <option value="Aktif">Aktif</option>
+                                    <option value="Standby">Standby</option>
+                                    <option value="Breakdown">Breakdown</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="newModelUnit" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Model / Merek Alat *</label>
+                            <input type="text" id="newModelUnit" placeholder="Komatsu PC200-8" class="w-full font-sans font-semibold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="newKategori" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Kategori</label>
+                                <select id="newKategori" class="w-full font-mono text-xs font-semibold bg-warm-input border border-warm-border rounded-xl px-2.5 py-2 focus:outline-none focus:border-forest">
+                                    <option value="Excavator">Excavator</option>
+                                    <option value="Dump Truck">Dump Truck</option>
+                                    <option value="Bulldozer">Bulldozer</option>
+                                    <option value="Wheel Loader">Wheel Loader</option>
+                                    <option value="Motor Grader">Motor Grader</option>
+                                    <option value="Compactor">Compactor</option>
+                                    <option value="Lainnya">Lainnya</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="newOperator" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Operator / PIC</label>
+                                <input type="text" id="newOperator" placeholder="Nama Operator" class="w-full font-sans text-xs bg-warm-input border border-warm-border rounded-xl px-2.5 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="newSite" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Lokasi / Site Kerja</label>
+                            <input type="text" id="newSite" value="Pit Utara - Blok B" class="w-full font-sans text-xs bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                        </div>
+                    </div>
+
+                    <!-- Kolom B: Hour Meter & Solar -->
+                    <div class="bg-white border border-warm-border rounded-xl p-4 space-y-3 shadow-2xs">
+                        <h4 class="font-mono font-bold text-xs uppercase tracking-wider text-warm-text border-b border-warm-border pb-2">
+                            B. Hour Meter &amp; Solar
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="newHMAwal" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">HM Awal</label>
+                                <input type="number" id="newHMAwal" value="1000" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                            <div>
+                                <label for="newHMAkhir" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">HM Saat Ini</label>
+                                <input type="number" id="newHMAkhir" value="1180" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="newSolar" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Solar Terisi (L)</label>
+                                <input type="number" id="newSolar" value="2700" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                            <div>
+                                <label for="newStdFuel" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Std Solar (L/HM)</label>
+                                <input type="number" id="newStdFuel" value="16" min="0.1" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                        </div>
+                        <div class="pt-1 border-t border-warm-border/70">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="font-mono text-[11px] font-bold text-warm-text">Jam Operasi Bulan Ini</span>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                                    <input type="checkbox" id="newAutoSyncW" checked class="rounded border-warm-border text-forest focus:ring-forest">
+                                    <span class="font-mono text-[10px] font-semibold text-forest">Samakan W dengan selisih HM</span>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label for="newW" class="block font-mono text-[10px] font-semibold text-warm-muted mb-1">Working W</label>
+                                    <input type="number" id="newW" value="180" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-2.5 py-2 focus:outline-none focus:border-forest">
+                                </div>
+                                <div>
+                                    <label for="newS" class="block font-mono text-[10px] font-semibold text-warm-muted mb-1">Standby S</label>
+                                    <input type="number" id="newS" value="30" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-2.5 py-2 focus:outline-none focus:border-forest">
+                                </div>
+                                <div>
+                                    <label for="newR" class="block font-mono text-[10px] font-semibold text-warm-muted mb-1">Repair R</label>
+                                    <input type="number" id="newR" value="15" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-2.5 py-2 focus:outline-none focus:border-forest">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kolom C: Servis Berkala & Target -->
+                    <div class="bg-white border border-warm-border rounded-xl p-4 space-y-3 shadow-2xs">
+                        <h4 class="font-mono font-bold text-xs uppercase tracking-wider text-warm-text border-b border-warm-border pb-2">
+                            C. Servis Berkala (PM) &amp; Target
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="newHMServis" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">HM Servis Terakhir</label>
+                                <input type="number" id="newHMServis" value="1000" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                            <div>
+                                <label for="newInterval" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Interval PM (Jam)</label>
+                                <input type="number" id="newInterval" value="250" min="1" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="newBatasSegera" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Batas 'Segera' (Jam)</label>
+                                <input type="number" id="newBatasSegera" value="50" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                            <div>
+                                <label for="newTargetPA" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Target PA (%)</label>
+                                <input type="number" id="newTargetPA" value="85" min="0" max="100" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="newJenisPM" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Paket PM Berikutnya</label>
+                            <input type="text" id="newJenisPM" value="PM-250" class="w-full font-mono font-semibold text-xs bg-warm-input border border-warm-border rounded-xl px-3 py-2.5 focus:outline-none focus:border-forest">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Preview Card di dalam Modal -->
+                <div class="bg-white border border-warm-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex flex-wrap items-center gap-4 font-mono text-xs">
+                        <div>
+                            <span class="text-warm-muted block text-[10px]">LIVE PREVIEW PA</span>
+                            <span id="previewNewPA" class="font-bold text-base text-emerald-700">93,3%</span>
+                        </div>
+                        <div class="h-7 w-px bg-warm-border"></div>
+                        <div>
+                            <span class="text-warm-muted block text-[10px]">FUEL RATIO</span>
+                            <span id="previewNewFuel" class="font-bold text-base text-warm-text">15,00 L/HM</span>
+                        </div>
+                        <div class="h-7 w-px bg-warm-border"></div>
+                        <div>
+                            <span class="text-warm-muted block text-[10px]">STATUS SERVIS</span>
+                            <span id="previewNewService" class="font-bold text-sm text-emerald-700">AMAN - sisa 70 jam</span>
+                        </div>
+                    </div>
+                    <div id="newUnitValidationMsg" class="font-mono text-xs text-red-600 font-semibold hidden"></div>
+                </div>
+
+            </div>
+
+            <!-- Footer Modal -->
+            <div class="bg-white px-5 py-3.5 sm:px-6 border-t border-warm-border flex flex-wrap items-center justify-end gap-2.5 shrink-0">
+                <button id="btnCancelAddModal" type="button" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-warm-muted hover:bg-warm-panel border border-warm-border transition-colors cursor-pointer">
+                    Batal
+                </button>
+                <button id="btnSaveAndAddAnother" type="button" class="px-4 py-2.5 rounded-xl text-xs font-bold text-forest bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors cursor-pointer">
+                    Simpan &amp; Tambah Lagi
+                </button>
+                <button id="btnConfirmAddUnit" type="button" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-safety-orange hover:bg-safety-orangeHover shadow-md transition-colors cursor-pointer">
+                    Simpan Unit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: INPUT LOG HARIAN (+W, +S, +R, +SOLAR, CATATAN) -->
+    <div id="dailyLogModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4 no-print" role="dialog" aria-modal="true">
+        <div class="bg-white rounded-2xl border border-warm-border shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="bg-forest px-5 py-3.5 text-white flex items-center justify-between">
+                <div>
+                    <h3 class="font-mono font-bold text-sm sm:text-base">+ Input Log Harian Unit</h3>
+                    <p id="dailyLogSubtitle" class="text-xs text-emerald-200 mt-0.5">EX-01 — Komatsu PC200-8</p>
+                </div>
+                <button id="btnCloseDailyModal" type="button" class="p-1.5 rounded-lg hover:bg-white/10 text-emerald-100 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="dailyLogDate" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Tanggal Operasi</label>
+                        <input type="date" id="dailyLogDate" class="w-full font-mono font-semibold text-xs bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                    </div>
+                    <div class="bg-warm-panel rounded-xl px-3 py-2 border border-warm-border flex items-center justify-between">
+                        <div>
+                            <span class="font-mono text-[10px] text-warm-muted block">HM SEBELUMNYA</span>
+                            <span id="dailyPrevHMDisplay" class="font-mono font-bold text-xs text-warm-text">5.030 HM</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-mono text-[10px] text-forest font-bold block">HM BARU</span>
+                            <span id="dailyNewHMPreview" class="font-mono font-bold text-sm text-forest">5.038 HM</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2.5">
+                    <div>
+                        <label for="dailyAddW" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">+Working W (jam)</label>
+                        <input type="number" id="dailyAddW" value="8" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                    </div>
+                    <div>
+                        <label for="dailyAddS" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">+Standby S (jam)</label>
+                        <input type="number" id="dailyAddS" value="2" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                    </div>
+                    <div>
+                        <label for="dailyAddR" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">+Repair R (jam)</label>
+                        <input type="number" id="dailyAddR" value="0" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="dailyAddSolar" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">+Solar Refuel (Liter)</label>
+                        <input type="number" id="dailyAddSolar" value="120" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label for="dailyManualHMAkhir" class="font-mono text-[11px] font-semibold text-warm-muted">HM Akhir Baru</label>
+                            <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+                                <input type="checkbox" id="dailyAutoSyncHM" checked class="rounded border-warm-border text-forest">
+                                <span class="font-mono text-[10px] text-forest font-semibold">Auto +W</span>
+                            </label>
+                        </div>
+                        <input type="number" id="dailyManualHMAkhir" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="dailyNote" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Catatan Aktivitas / Shift</label>
+                    <input type="text" id="dailyNote" placeholder="Contoh: Shift 1 - Stripping OB & loading DT" class="w-full font-sans text-xs bg-warm-input border border-warm-border rounded-xl px-3 py-2.5 focus:outline-none focus:border-forest">
+                </div>
+            </div>
+            <div class="px-5 py-3.5 bg-warm-panel border-t border-warm-border flex justify-end gap-2">
+                <button id="btnCancelDailyModal" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-warm-muted hover:bg-white border border-warm-border cursor-pointer">
+                    Batal
+                </button>
+                <button id="btnConfirmDailyLog" type="button" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-forest hover:bg-forest-light shadow-sm cursor-pointer">
+                    Simpan Log Harian
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: CATAT SERVIS SELESAI (PREVENTIVE MAINTENANCE COMPLETION) -->
+    <div id="serviceCompleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4 no-print" role="dialog" aria-modal="true">
+        <div class="bg-white rounded-2xl border border-warm-border shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="bg-forest px-5 py-3.5 text-white flex items-center justify-between">
+                <div>
+                    <h3 class="font-mono font-bold text-sm sm:text-base">✓ Catat Servis Berkala Selesai</h3>
+                    <p id="pmModalSubtitle" class="text-xs text-emerald-200 mt-0.5">EX-01 — Komatsu PC200-8</p>
+                </div>
+                <button id="btnClosePMModal" type="button" class="p-1.5 rounded-lg hover:bg-white/10 text-emerald-100 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="grid grid-cols-2 gap-3 bg-warm-panel p-3 rounded-xl border border-warm-border font-mono text-xs">
+                    <div>
+                        <span class="text-warm-muted block text-[10px]">HM SAAT INI</span>
+                        <span id="pmCurrentHMInfo" class="font-bold text-sm text-warm-text">5.030 HM</span>
+                    </div>
+                    <div>
+                        <span class="text-warm-muted block text-[10px]">HM SERVIS SEBELUMNYA</span>
+                        <span id="pmPrevHMInfo" class="font-bold text-sm text-warm-muted">4.750 HM</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="pmExecutionHM" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">HM Pelaksanaan Servis *</label>
+                        <input type="number" id="pmExecutionHM" min="0" step="any" class="w-full font-mono font-bold text-sm bg-warm-input border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-forest">
+                    </div>
+                    <div>
+                        <label for="pmPackageType" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Jenis Paket Servis</label>
+                        <select id="pmPackageType" class="w-full font-mono font-semibold text-xs bg-warm-input border border-warm-border rounded-xl px-2.5 py-2.5 focus:outline-none focus:border-forest">
+                            <option value="PM-250">PM-250 (Minor Service)</option>
+                            <option value="PM-500">PM-500 (Medium Service)</option>
+                            <option value="PM-1000">PM-1000 (Major Service)</option>
+                            <option value="PM-2000">PM-2000 (Full Service)</option>
+                            <option value="Overhaul / Perbaikan Khusus">Overhaul / Perbaikan Khusus</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5 flex items-center justify-between font-mono text-xs">
+                    <span class="text-emerald-900">Jadwal Due Servis Berikutnya:</span>
+                    <span id="pmNextDuePreview" class="font-bold text-emerald-800 text-sm">HM 5.280</span>
+                </div>
+
+                <div>
+                    <label for="pmMechanicNote" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Catatan Mekanik &amp; Penggantian Part</label>
+                    <input type="text" id="pmMechanicNote" placeholder="Contoh: Ganti oli mesin 15W-40, filter oli, filter solar & grease" class="w-full font-sans text-xs bg-warm-input border border-warm-border rounded-xl px-3 py-2.5 focus:outline-none focus:border-forest">
+                </div>
+            </div>
+            <div class="px-5 py-3.5 bg-warm-panel border-t border-warm-border flex justify-end gap-2">
+                <button id="btnCancelPMModal" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-warm-muted hover:bg-white border border-warm-border cursor-pointer">
+                    Batal
+                </button>
+                <button id="btnConfirmPMComplete" type="button" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-forest hover:bg-forest-light shadow-sm cursor-pointer">
+                    Simpan &amp; Reset Jadwal PM
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input File Tersembunyi untuk Restore JSON -->
+    <input type="file" id="importJsonFileInput" accept=".json,application/json" class="hidden">
+
+    <!-- KONTAINER UTAMA APLIKASI -->
+    <div class="max-w-[1440px] mx-auto space-y-5 print-container">
+
+        <!-- 1. IDENTITAS & HEADER UTAMA -->
+        <header class="bg-forest rounded-2xl shadow-lg px-5 py-4 sm:px-6 sm:py-5 text-white space-y-4">
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <!-- Kiri: Judul & Subjudul -->
+                <div class="flex items-start sm:items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 shadow-inner mt-0.5 sm:mt-0">
+                        <svg class="w-6 h-6 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 17h18" />
+                            <path d="M5 17v-4a2 2 0 0 1 2-2h6l3 3h3a2 2 0 0 1 2 2v1" />
+                            <circle cx="7.5" cy="17.5" r="2.5" />
+                            <circle cx="16.5" cy="17.5" r="2.5" />
+                            <path d="M13 11V6l4-2 2 3" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h1 class="font-mono font-bold text-lg sm:text-xl tracking-tight text-white">
+                                Monitoring Alat Berat 2026
+                            </h1>
+                            <span id="saveStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-300"></span>
+                                <span id="saveStatusText">Tersimpan Otomatis</span>
+                            </span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-emerald-100/85 mt-0.5">
+                            Sistem Manajemen Ketersediaan (PA/MA/UA/EU), BBM &amp; Preventive Maintenance Armada
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Kanan: Tombol Aksi Utama -->
+                <div class="flex flex-wrap items-center gap-2 no-print">
+                    <button 
+                        id="btnNewUnit" 
+                        type="button" 
+                        class="px-4 py-2.5 rounded-xl text-xs font-bold bg-safety-orange hover:bg-safety-orangeHover text-white shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>+ Tambah Unit Baru</span>
+                    </button>
+
+                    <button 
+                        id="btnExportCSV" 
+                        type="button" 
+                        class="px-3 py-2.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Unduh laporan Excel (.csv)"
+                    >
+                        <svg class="w-4 h-4 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Export CSV</span>
+                    </button>
+
+                    <button 
+                        id="btnBackupJSON" 
+                        type="button" 
+                        class="px-3 py-2.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Simpan cadangan database armada (.json)"
+                    >
+                        <svg class="w-4 h-4 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                        <span>Backup JSON</span>
+                    </button>
+
+                    <button 
+                        id="btnRestoreJSON" 
+                        type="button" 
+                        class="px-3 py-2.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Pulihkan database dari file JSON"
+                    >
+                        <svg class="w-4 h-4 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        <span>Restore JSON</span>
+                    </button>
+
+                    <button 
+                        id="btnPrintReport" 
+                        type="button" 
+                        class="px-3 py-2.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                        title="Cetak laporan ke kertas A4 / PDF"
+                    >
+                        <svg class="w-4 h-4 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <span>Cetak Laporan</span>
+                    </button>
+
+                    <button 
+                        id="btnResetFleet" 
+                        type="button" 
+                        class="px-3 py-2.5 rounded-xl text-xs font-semibold bg-red-500/20 hover:bg-red-500/35 text-red-100 border border-red-400/30 transition-all cursor-pointer"
+                        title="Kembalikan ke 4 unit contoh awal"
+                    >
+                        Reset Contoh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bar Parameter Global: Periode Aktif & Harga Solar / Liter -->
+            <div class="pt-3 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-emerald-200/80">Armada Terdaftar:</span>
+                        <span id="headerUnitCount" class="font-bold text-white bg-white/10 px-2.5 py-1 rounded-lg">4 Unit</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="globalPeriodeInput" class="text-emerald-200/80">Periode Aktif:</label>
+                        <input 
+                            type="text" 
+                            id="globalPeriodeInput" 
+                            value="November 2026" 
+                            class="bg-white/10 border border-white/25 rounded-lg px-2.5 py-1 text-white font-semibold w-36 sm:w-44 focus:outline-none focus:bg-white/20 focus:border-emerald-300"
+                        >
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <label for="globalHargaSolarInput" class="text-emerald-200/80">Harga Solar / Liter (Rp):</label>
+                    <div class="relative flex items-center">
+                        <span class="absolute left-2.5 text-emerald-200 font-bold">Rp</span>
+                        <input 
+                            type="text" 
+                            id="globalHargaSolarInput" 
+                            inputmode="numeric"
+                            value="15.000" 
+                            class="bg-white/10 border border-white/25 rounded-lg pl-8 pr-3 py-1 text-white font-bold w-32 text-right focus:outline-none focus:bg-white/20 focus:border-emerald-300"
+                        >
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 2. FLEET SUMMARY BAR (5 KPI UTAMA ARMADA) -->
+        <section aria-label="Ringkasan 5 KPI Armada" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 print-break-inside">
+            <!-- KPI 1: Total Unit Aktif & Rincian Status -->
+            <div class="bg-warm-card rounded-2xl border border-warm-border p-4 shadow-2xs flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-warm-muted">Total Armada</span>
+                    <span class="w-7 h-7 rounded-lg bg-forest/10 text-forest flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </span>
+                </div>
+                <p id="kpiTotalUnits" class="font-mono font-bold text-2xl text-warm-text mt-1.5">4 Unit</p>
+                <p id="kpiStatusBreakdown" class="font-mono text-[11px] text-warm-muted mt-1">3 Aktif • 1 Standby • 0 B/D</p>
+            </div>
+
+            <!-- KPI 2: Rata-rata Physical Availability (PA) Armada -->
+            <div class="bg-warm-card rounded-2xl border border-warm-border p-4 shadow-2xs flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-warm-muted">Rata-rata PA Armada</span>
+                    <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </span>
+                </div>
+                <p id="kpiAvgPA" class="font-mono font-bold text-2xl text-emerald-700 mt-1.5">88,5%</p>
+                <p id="kpiAvgPATarget" class="font-mono text-[11px] text-warm-muted mt-1">Target Armada: 85,5%</p>
+            </div>
+
+            <!-- KPI 3: Total HM Terpakai Bulan Ini -->
+            <div class="bg-warm-card rounded-2xl border border-warm-border p-4 shadow-2xs flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-warm-muted">Total HM Terpakai</span>
+                    <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </span>
+                </div>
+                <p id="kpiTotalHM" class="font-mono font-bold text-2xl text-warm-text mt-1.5">835 jam</p>
+                <p id="kpiAvgFuelRatio" class="font-mono text-[11px] text-warm-muted mt-1">Avg Fuel: 14,50 L/HM</p>
+            </div>
+
+            <!-- KPI 4: Total Konsumsi & Biaya Solar -->
+            <div class="bg-warm-card rounded-2xl border border-warm-border p-4 shadow-2xs flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-warm-muted">Total Konsumsi Solar</span>
+                    <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </span>
+                </div>
+                <p id="kpiTotalSolar" class="font-mono font-bold text-2xl text-warm-text mt-1.5">11.830 L</p>
+                <p id="kpiTotalFuelCost" class="font-mono text-[11px] font-semibold text-amber-900 mt-1">Rp 177.450.000</p>
+            </div>
+
+            <!-- KPI 5: Peringatan Servis (Klik untuk filter unit bermasalah) -->
+            <button 
+                id="kpiServiceAlertCard" 
+                type="button" 
+                class="bg-warm-card hover:bg-red-50/40 rounded-2xl border border-warm-border p-4 shadow-2xs flex flex-col justify-between text-left transition-colors cursor-pointer group"
+                title="Klik untuk memfilter unit yang perlu perhatian servis"
+            >
+                <div class="flex items-center justify-between w-full">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-warm-muted group-hover:text-red-800">Peringatan Servis</span>
+                    <span class="w-7 h-7 rounded-lg bg-red-100 text-red-700 flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </span>
+                </div>
+                <div class="flex items-baseline gap-2 mt-1.5">
+                    <span id="kpiOverdueBadge" class="font-mono font-bold text-lg text-red-700">1 LEWAT</span>
+                    <span class="text-warm-muted">•</span>
+                    <span id="kpiSoonBadge" class="font-mono font-bold text-lg text-amber-700">1 SEGERA</span>
+                </div>
+                <p class="font-mono text-[10px] text-forest underline mt-1 no-print">Klik untuk filter unit servis →</p>
+            </button>
+        </section>
+
+        <!-- 3. TABEL DAFTAR ARMADA (INTERAKTIF & RESPONSIF) -->
+        <section aria-label="Tabel Daftar Armada" class="bg-warm-card rounded-2xl border border-warm-border shadow-sm overflow-hidden print-break-inside">
+            
+            <!-- Toolbar Pencarian & Filter Kategori / Status -->
+            <div class="bg-warm-panel px-4 py-3.5 sm:px-6 border-b border-warm-border flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-mono font-bold text-sm sm:text-base text-warm-text">
+                        Daftar Armada &amp; Status Operasional (<span id="tableCountBadge">4</span> Unit)
+                    </h2>
+                    <p class="text-xs text-warm-muted">
+                        Klik baris unit untuk membuka &amp; mengedit rincian pada Panel Kalkulator di bawah
+                    </p>
+                </div>
+
+                <!-- Filter & Search Controls -->
+                <div class="flex flex-wrap items-center gap-2 no-print">
+                    <div class="relative flex-1 sm:flex-initial sm:w-56">
+                        <svg class="w-4 h-4 text-warm-muted absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input 
+                            type="text" 
+                            id="searchUnitInput" 
+                            placeholder="Cari kode, merek, site..." 
+                            class="w-full pl-9 pr-3 py-2 text-xs font-sans bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest"
+                        >
+                    </div>
+
+                    <select 
+                        id="filterCategorySelect" 
+                        class="px-3 py-2 text-xs font-mono font-medium bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest cursor-pointer"
+                    >
+                        <option value="ALL">Semua Kategori</option>
+                        <option value="Excavator">Excavator</option>
+                        <option value="Dump Truck">Dump Truck</option>
+                        <option value="Bulldozer">Bulldozer</option>
+                        <option value="Wheel Loader">Wheel Loader</option>
+                        <option value="Motor Grader">Motor Grader</option>
+                        <option value="Compactor">Compactor</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+
+                    <select 
+                        id="filterStatusSelect" 
+                        class="px-3 py-2 text-xs font-mono font-medium bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest cursor-pointer"
+                    >
+                        <option value="ALL">Semua Status Servis</option>
+                        <option value="NEED_SERVICE">Perlu Servis (Lewat &amp; Segera)</option>
+                        <option value="OVERDUE">Lewat Servis (Overdue)</option>
+                        <option value="SOON">Segera Servis</option>
+                        <option value="SAFE">Servis Aman</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabel Responsif -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[920px]">
+                    <thead>
+                        <tr class="bg-warm-panel/60 border-b border-warm-border font-mono text-[11px] uppercase tracking-wider text-warm-muted">
+                            <th class="py-3 px-4 font-semibold">Kode Unit &amp; Tipe</th>
+                            <th class="py-3 px-3 font-semibold">Status</th>
+                            <th class="py-3 px-3 font-semibold text-right">PA%</th>
+                            <th class="py-3 px-3 font-semibold text-right">MA%</th>
+                            <th class="py-3 px-3 font-semibold text-right">UA%</th>
+                            <th class="py-3 px-3 font-semibold text-right">EU%</th>
+                            <th class="py-3 px-3 font-semibold text-right">HM Terpakai</th>
+                            <th class="py-3 px-3 font-semibold text-right">Fuel Ratio vs Std</th>
+                            <th class="py-3 px-3 font-semibold">Status Servis PM</th>
+                            <th class="py-3 px-4 font-semibold text-right no-print">Aksi Cepat</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fleetTableBody" class="divide-y divide-warm-border text-xs">
+                        <!-- Diisi dinamis oleh JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- State Kosong saat Filter tidak cocok -->
+            <div id="emptyFleetState" class="hidden p-8 text-center space-y-3">
+                <p class="font-mono text-sm font-bold text-warm-text">Tidak ada unit yang sesuai filter</p>
+                <p class="text-xs text-warm-muted">Ubah kata kunci pencarian/filter atau tambahkan unit alat berat baru.</p>
+                <button type="button" id="btnResetFilters" class="px-4 py-2 rounded-xl text-xs font-bold bg-forest text-white hover:bg-forest-light cursor-pointer">
+                    Tampilkan Semua Unit
+                </button>
+            </div>
+        </section>
+
+        <!-- 4. PANEL KALKULATOR & DETAIL UNIT AKTIF (ESTETIKA INDUSTRIAL-ENGINEERING) -->
+        <section id="unitDetailSection" aria-label="Panel Kalkulator dan Detail Unit Aktif" class="bg-warm-card rounded-2xl border border-warm-border shadow-md overflow-hidden print-break-inside">
+            
+            <!-- Header Panel Unit Aktif -->
+            <div class="bg-forest px-5 py-4 sm:px-6 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 font-mono font-bold text-base sm:text-lg tracking-wide text-emerald-200" id="detailHeaderCode">
+                        EX-01
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h2 id="detailHeaderModel" class="font-sans font-bold text-base sm:text-lg text-white">
+                                Komatsu PC200-8
+                            </h2>
+                            <span id="detailHeaderCategoryBadge" class="font-mono text-[11px] font-semibold px-2 py-0.5 rounded bg-white/15 text-emerald-100">
+                                Excavator
+                            </span>
+                        </div>
+                        <p class="font-mono text-xs text-emerald-100/80 mt-0.5">
+                            Lokasi: <span id="detailHeaderSite" class="text-white font-semibold">Pit Utara - Blok B</span> • Operator/PIC: <span id="detailHeaderOperator" class="text-white font-semibold">Budi Santoso</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Tombol Aksi Cepat Unit Aktif -->
+                <div class="flex flex-wrap items-center gap-2 no-print">
+                    <button 
+                        id="btnOpenDailyModal" 
+                        type="button" 
+                        class="px-3.5 py-2 rounded-xl font-mono text-xs font-bold bg-emerald-400 hover:bg-emerald-300 text-forest-dark shadow-sm transition-colors cursor-pointer"
+                    >
+                        + Input Log Harian
+                    </button>
+                    <button 
+                        id="btnOpenPMModal" 
+                        type="button" 
+                        class="px-3.5 py-2 rounded-xl font-mono text-xs font-bold bg-white/15 hover:bg-white/25 text-white border border-white/25 transition-colors cursor-pointer"
+                    >
+                        ✓ Catat Servis Selesai
+                    </button>
+                    <button 
+                        id="btnDuplicateUnit" 
+                        type="button" 
+                        class="px-3 py-2 rounded-xl font-mono text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer"
+                    >
+                        ⧉ Duplikat Unit
+                    </button>
+                    <button 
+                        id="btnDeleteActiveUnit" 
+                        type="button" 
+                        class="px-3 py-2 rounded-xl font-mono text-xs font-semibold bg-red-500/25 hover:bg-red-500/40 text-red-100 border border-red-400/30 transition-colors cursor-pointer"
+                    >
+                        Hapus Unit
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bar Edit Identitas Unit Aktif (Real-Time Auto-Save) -->
+            <div class="bg-warm-panel px-5 py-3.5 sm:px-6 border-b border-warm-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div>
+                    <label for="inputKodeUnit" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Kode Unit</label>
+                    <input type="text" id="inputKodeUnit" class="w-full font-mono font-bold text-sm uppercase bg-white border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                </div>
+                <div>
+                    <label for="inputModelUnit" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Nama / Model Unit</label>
+                    <input type="text" id="inputModelUnit" class="w-full font-sans font-semibold text-sm bg-white border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                </div>
+                <div>
+                    <label for="inputSite" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Lokasi / Site</label>
+                    <input type="text" id="inputSite" class="w-full font-sans font-medium text-sm bg-white border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                </div>
+                <div>
+                    <label for="inputOperator" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Operator / PIC</label>
+                    <input type="text" id="inputOperator" class="w-full font-sans font-medium text-sm bg-white border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                </div>
+                <div>
+                    <label for="inputStatusOperasi" class="block font-mono text-[11px] font-semibold text-warm-muted mb-1">Status Operasi</label>
+                    <select id="inputStatusOperasi" class="w-full font-mono font-bold text-sm bg-white border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20 cursor-pointer">
+                        <option value="Aktif">Aktif</option>
+                        <option value="Standby">Standby</option>
+                        <option value="Breakdown">Breakdown</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 3 KOLOM INPUT REAL-TIME (SESUAI STRUKTUR GAMBAR REFERENSI) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-warm-border bg-white">
+                
+                <!-- Kolom 1: Jam Bulan Ini -->
+                <div class="p-5 sm:p-6 space-y-3.5">
+                    <div class="flex items-center justify-between border-b border-warm-border pb-2">
+                        <h3 class="font-mono font-bold text-sm text-warm-text">Jam bulan ini</h3>
+                        <span class="font-mono text-[11px] text-warm-muted">W / S / R</span>
+                    </div>
+
+                    <div>
+                        <label for="inputW" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Working W (jam)</label>
+                        <input type="number" id="inputW" min="0" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <label for="inputS" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Standby S (jam)</label>
+                        <input type="number" id="inputS" min="0" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <label for="inputR" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Repair R (jam)</label>
+                        <input type="number" id="inputR" min="0" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <label for="inputTargetPA" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Target PA (%)</label>
+                        <input type="number" id="inputTargetPA" min="0" max="100" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+                </div>
+
+                <!-- Kolom 2: Hour Meter & Solar -->
+                <div class="p-5 sm:p-6 space-y-3.5">
+                    <div class="flex items-center justify-between border-b border-warm-border pb-2">
+                        <h3 class="font-mono font-bold text-sm text-warm-text">Hour meter &amp; solar</h3>
+                        <span class="font-mono text-[11px] text-warm-muted">HM &amp; BBM</span>
+                    </div>
+
+                    <div>
+                        <label for="inputHMAwal" class="block font-mono text-xs font-semibold text-warm-muted mb-1">HM awal</label>
+                        <input type="number" id="inputHMAwal" min="0" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label for="inputHMAkhir" class="font-mono text-xs font-semibold text-warm-muted">HM akhir / saat ini</label>
+                            <span id="hmValidationWarning" class="hidden font-mono text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                                ⚠ HM Akhir &lt; HM Awal
+                            </span>
+                        </div>
+                        <input type="number" id="inputHMAkhir" min="0" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <label for="inputSolar" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Solar terisi (liter)</label>
+                        <input type="number" id="inputSolar" min="0" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <label for="inputStdFuel" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Standar Solar Unit (L/HM)</label>
+                        <input type="number" id="inputStdFuel" min="0.1" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+                </div>
+
+                <!-- Kolom 3: Servis Berkala (PM) -->
+                <div class="p-5 sm:p-6 space-y-3.5">
+                    <div class="flex items-center justify-between border-b border-warm-border pb-2">
+                        <h3 class="font-mono font-bold text-sm text-warm-text">Servis berkala (PM)</h3>
+                        <span class="font-mono text-[11px] text-warm-muted">Maintenance</span>
+                    </div>
+
+                    <div>
+                        <label for="inputHMServis" class="block font-mono text-xs font-semibold text-warm-muted mb-1">HM servis terakhir</label>
+                        <input type="number" id="inputHMServis" min="0" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <label for="inputInterval" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Interval servis (jam)</label>
+                        <input type="number" id="inputInterval" min="1" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <label for="inputBatasSegera" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Batas &quot;segera&quot; (jam)</label>
+                        <input type="number" id="inputBatasSegera" min="0" step="any" class="w-full font-mono font-bold text-base text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+
+                    <div>
+                        <label for="inputJenisPM" class="block font-mono text-xs font-semibold text-warm-muted mb-1">Paket PM Berikutnya</label>
+                        <input type="text" id="inputJenisPM" class="w-full font-mono font-semibold text-sm text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20">
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL OUTPUT & VISUALISASI (BAGIAN BAWAH PANEL DETAIL) -->
+            <div class="p-5 sm:p-6 bg-warm-panel border-t border-warm-border space-y-5">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                    
+                    <!-- Kiri (7 cols): Grafik Horizontal Bar PA, MA, UA, EU -->
+                    <div class="lg:col-span-7 bg-white border border-warm-border rounded-2xl p-5 flex flex-col justify-between shadow-2xs">
+                        <div>
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <h4 class="font-mono font-bold text-xs uppercase tracking-wider text-warm-text">
+                                    Ketersediaan &amp; Utilisasi Unit (PA / MA / UA / EU)
+                                </h4>
+                                <span id="badgeTargetStatus" class="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                                    PA MEMENUHI TARGET
+                                </span>
+                            </div>
+
+                            <div class="space-y-4">
+                                <!-- PA -->
+                                <div>
+                                    <div class="flex items-center justify-between font-mono text-xs mb-1">
+                                        <span class="font-bold text-warm-text">PA <span class="font-normal text-warm-muted">(Physical Availability)</span></span>
+                                        <span id="valPA" class="font-bold text-sm text-warm-text">86,7%</span>
+                                    </div>
+                                    <div class="relative h-4 bg-slate-200 rounded-full overflow-visible">
+                                        <div id="barPA" class="progress-fill h-full bg-forest-bar rounded-full" style="width: 86.7%;"></div>
+                                        <div id="targetMarkerPA" class="target-marker absolute -top-1 -bottom-1 w-[3px] bg-zinc-900 rounded-full z-10 shadow-xs" style="left: 85%;" title="Target PA"></div>
+                                    </div>
+                                </div>
+
+                                <!-- MA -->
+                                <div>
+                                    <div class="flex items-center justify-between font-mono text-xs mb-1">
+                                        <span class="font-bold text-warm-text">MA <span class="font-normal text-warm-muted">(Mechanical Availability)</span></span>
+                                        <span id="valMA" class="font-bold text-sm text-warm-text">84,0%</span>
+                                    </div>
+                                    <div class="relative h-3.5 bg-slate-200 rounded-full overflow-hidden">
+                                        <div id="barMA" class="progress-fill h-full bg-slate-600 rounded-full" style="width: 84.0%;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- UA -->
+                                <div>
+                                    <div class="flex items-center justify-between font-mono text-xs mb-1">
+                                        <span class="font-bold text-warm-text">UA <span class="font-normal text-warm-muted">(Use of Availability)</span></span>
+                                        <span id="valUA" class="font-bold text-sm text-warm-text">80,8%</span>
+                                    </div>
+                                    <div class="relative h-3.5 bg-slate-200 rounded-full overflow-hidden">
+                                        <div id="barUA" class="progress-fill h-full bg-slate-600 rounded-full" style="width: 80.8%;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- EU -->
+                                <div>
+                                    <div class="flex items-center justify-between font-mono text-xs mb-1">
+                                        <span class="font-bold text-warm-text">EU <span class="font-normal text-warm-muted">(Effective Utilization)</span></span>
+                                        <span id="valEU" class="font-bold text-sm text-warm-text">70,0%</span>
+                                    </div>
+                                    <div class="relative h-3.5 bg-slate-200 rounded-full overflow-hidden">
+                                        <div id="barEU" class="progress-fill h-full bg-slate-600 rounded-full" style="width: 70.0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 pt-3 border-t border-warm-border space-y-1 font-mono text-[11px] text-warm-muted">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span>Garis vertikal = target PA (<span id="labelTargetPA" class="font-bold text-warm-text">85%</span>). Bar merah jika PA di bawah target.</span>
+                                <span id="valTotalJamOperasi" class="font-bold text-warm-text">Total W+S+R: 300 jam</span>
+                            </div>
+                            <div class="text-[10px] text-warm-muted/90">
+                                Rumus: PA = (W+S)/(W+S+R) • MA = W/(W+R) • UA = W/(W+S) • EU = W/(W+S+R)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kanan (5 cols): Kartu Fuel Ratio & Kartu Status Servis Berkala -->
+                    <div class="lg:col-span-5 flex flex-col justify-between gap-4">
+                        
+                        <!-- Kartu Fuel Ratio & Biaya BBM -->
+                        <div class="bg-white border border-warm-border rounded-2xl p-5 shadow-2xs flex-1 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-mono text-xs font-semibold text-warm-muted">Fuel ratio</span>
+                                    <span id="badgeFuelStatus" class="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                                        HEMAT (Std 16,0)
+                                    </span>
+                                </div>
+                                <div class="mt-1.5">
+                                    <span id="valFuelRatio" class="font-mono font-bold text-2xl sm:text-3xl text-warm-text tracking-tight">15,00 L/HM</span>
+                                </div>
+                                <p id="valHMTerpakai" class="font-mono text-xs text-warm-muted mt-0.5">
+                                    210 HM terpakai (HM 4.820 → 5.030)
+                                </p>
+                            </div>
+
+                            <div class="mt-3 pt-3 border-t border-warm-border grid grid-cols-2 gap-2 font-mono text-xs">
+                                <div>
+                                    <span class="text-warm-muted block text-[10px]">TOTAL BIAYA SOLAR</span>
+                                    <span id="valTotalFuelCost" class="font-bold text-warm-text">Rp 47.250.000</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-warm-muted block text-[10px]">BIAYA BBM / JAM</span>
+                                    <span id="valCostPerHM" class="font-bold text-warm-text">Rp 225.000/HM</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kartu Status Servis Berkala -->
+                        <div id="serviceStatusCard" class="status-card-transition bg-red-50 border border-red-200 rounded-2xl p-5 shadow-2xs flex-1 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span id="serviceStatusLabel" class="font-mono text-xs font-semibold text-red-900/80">Status servis</span>
+                                    <span id="valJenisPMBadge" class="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-white/80 text-warm-text border border-black/10">
+                                        PM-250
+                                    </span>
+                                </div>
+                                <div id="valServiceStatus" class="font-mono font-bold text-2xl sm:text-3xl text-red-700 tracking-tight mt-1">
+                                    LEWAT 30 jam
+                                </div>
+                                <div id="valDueHM" class="font-mono text-xs text-red-900/85 mt-0.5">
+                                    due di HM 5.000
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar Siklus Servis -->
+                            <div class="mt-3 pt-2">
+                                <div class="flex justify-between font-mono text-[10px] mb-1 opacity-85">
+                                    <span id="pmStartLabel">HM 4.750</span>
+                                    <span id="pmPercentLabel">112% siklus</span>
+                                    <span id="pmEndLabel">HM 5.000</span>
+                                </div>
+                                <div class="h-2.5 bg-black/10 rounded-full overflow-hidden">
+                                    <div id="pmProgressBar" class="progress-fill h-full bg-red-600 rounded-full" style="width: 100%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- RIWAYAT LOG AKTIVITAS & SERVIS UNIT -->
+                <div class="bg-white border border-warm-border rounded-2xl p-4 sm:p-5 shadow-2xs">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-warm-border pb-3 mb-3">
+                        <div>
+                            <h4 class="font-mono font-bold text-xs uppercase tracking-wider text-warm-text">
+                                Riwayat Log Harian &amp; Servis PM (<span id="logHistoryUnitCode">EX-01</span>)
+                            </h4>
+                            <p class="text-[11px] text-warm-muted">Catatan aktivitas operasional dan pemeliharaan mekanik terbaru untuk unit ini</p>
+                        </div>
+                        <span id="logCountBadge" class="font-mono text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-warm-panel text-warm-muted border border-warm-border">
+                            2 Catatan
+                        </span>
+                    </div>
+
+                    <div id="unitActivityLogList" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        <!-- Diisi dinamis oleh JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- SCRIPT APLIKASI PRODUKSI -->
+    <script>
+        (function () {
+            const STORAGE_KEY = 'monitoring_alat_berat_2026_prod_v1';
+
+            // Preset Standar Kategori Alat Berat
+            const UNIT_PRESETS = {
+                EXCAVATOR: {
+                    kategori: 'Excavator',
+                    prefix: 'EX',
+                    model: 'Komatsu PC200-8',
+                    interval: 250,
+                    batasSegera: 50,
+                    stdFuel: 16.0,
+                    targetPA: 85,
+                    jenisPM: 'PM-250'
+                },
+                DUMP_TRUCK: {
+                    kategori: 'Dump Truck',
+                    prefix: 'DT',
+                    model: 'Hino FM260JD',
+                    interval: 400,
+                    batasSegera: 50,
+                    stdFuel: 13.5,
+                    targetPA: 88,
+                    jenisPM: 'PM-400'
+                },
+                BULLDOZER: {
+                    kategori: 'Bulldozer',
+                    prefix: 'DZ',
+                    model: 'Komatsu D65P-12',
+                    interval: 500,
+                    batasSegera: 60,
+                    stdFuel: 18.0,
+                    targetPA: 85,
+                    jenisPM: 'PM-500'
+                },
+                WHEEL_LOADER: {
+                    kategori: 'Wheel Loader',
+                    prefix: 'WL',
+                    model: 'SDLG LG936L',
+                    interval: 250,
+                    batasSegera: 50,
+                    stdFuel: 14.5,
+                    targetPA: 86,
+                    jenisPM: 'PM-250'
+                },
+                MOTOR_GRADER: {
+                    kategori: 'Motor Grader',
+                    prefix: 'MG',
+                    model: 'Caterpillar 140K',
+                    interval: 250,
+                    batasSegera: 50,
+                    stdFuel: 13.0,
+                    targetPA: 87,
+                    jenisPM: 'PM-250'
+                },
+                COMPACTOR: {
+                    kategori: 'Compactor',
+                    prefix: 'CP',
+                    model: 'Bomag BW211D-40',
+                    interval: 250,
+                    batasSegera: 40,
+                    stdFuel: 10.5,
+                    targetPA: 88,
+                    jenisPM: 'PM-250'
+                },
+                CUSTOM: {
+                    kategori: 'Lainnya',
+                    prefix: 'UN',
+                    model: 'Unit Alat Berat',
+                    interval: 250,
+                    batasSegera: 50,
+                    stdFuel: 15.0,
+                    targetPA: 85,
+                    jenisPM: 'PM-250'
+                }
+            };
+
+            // 4 Unit Contoh Realistis untuk Inisialisasi Pertama Kali
+            const DEFAULT_STATE = {
+                periodeAktif: 'November 2026',
+                hargaSolarGlobal: 15000,
+                activeUnitId: 'unit-ex-01',
+                fleet: [
+                    {
+                        id: 'unit-ex-01',
+                        kodeUnit: 'EX-01',
+                        kategori: 'Excavator',
+                        modelUnit: 'Komatsu PC200-8',
+                        site: 'Pit Utara - Blok B',
+                        operator: 'Budi Santoso',
+                        statusOperasi: 'Aktif',
+                        W: 210,
+                        S: 50,
+                        R: 40,
+                        targetPA: 85,
+                        hmAwal: 4820,
+                        hmAkhir: 5030,
+                        solar: 3150,
+                        stdFuel: 16.0,
+                        hmServis: 4750,
+                        interval: 250,
+                        batasSegera: 50,
+                        jenisPM: 'PM-250',
+                        logs: [
+                            {
+                                id: 'log-101',
+                                type: 'DAILY',
+                                date: '2026-11-19',
+                                summary: '+8,0 W | +2,0 S | +120 L Solar → HM 5.030',
+                                note: 'Shift 1 & 2 - Loading overburden ke DT-05'
+                            },
+                            {
+                                id: 'log-100',
+                                type: 'SERVICE',
+                                date: '2026-10-28',
+                                summary: 'PM-250 Selesai di HM 4.750 (Next Due: HM 5.000)',
+                                note: 'Penggantian oli mesin, filter oli, water separator & greasing'
+                            }
+                        ]
+                    },
+                    {
+                        id: 'unit-dt-05',
+                        kodeUnit: 'DT-05',
+                        kategori: 'Dump Truck',
+                        modelUnit: 'Hino FM260JD',
+                        site: 'Hauling Road KM 14',
+                        operator: 'Andi Wijaya',
+                        statusOperasi: 'Aktif',
+                        W: 245,
+                        S: 35,
+                        R: 20,
+                        targetPA: 88,
+                        hmAwal: 8120,
+                        hmAkhir: 8365,
+                        solar: 3185,
+                        stdFuel: 13.5,
+                        hmServis: 8000,
+                        interval: 400,
+                        batasSegera: 50,
+                        jenisPM: 'PM-400',
+                        logs: [
+                            {
+                                id: 'log-201',
+                                type: 'DAILY',
+                                date: '2026-11-19',
+                                summary: '+9,5 W | +1,5 S | +125 L Solar → HM 8.365',
+                                note: 'Hauling material dari Pit Utara ke Disposal Timur'
+                            }
+                        ]
+                    },
+                    {
+                        id: 'unit-dz-02',
+                        kodeUnit: 'DZ-02',
+                        kategori: 'Bulldozer',
+                        modelUnit: 'Komatsu D65P-12',
+                        site: 'Disposal Area Timur',
+                        operator: 'Rudi Hartono',
+                        statusOperasi: 'Standby',
+                        W: 185,
+                        S: 75,
+                        R: 40,
+                        targetPA: 85,
+                        hmAwal: 6210,
+                        hmAkhir: 6395,
+                        solar: 3420,
+                        stdFuel: 18.0,
+                        hmServis: 6000,
+                        interval: 500,
+                        batasSegera: 60,
+                        jenisPM: 'PM-500',
+                        logs: [
+                            {
+                                id: 'log-301',
+                                type: 'DAILY',
+                                date: '2026-11-18',
+                                summary: '+7,0 W | +3,0 S | +130 L Solar → HM 6.395',
+                                note: 'Ripping & spreading material area timbunan timur'
+                            }
+                        ]
+                    },
+                    {
+                        id: 'unit-wl-03',
+                        kodeUnit: 'WL-03',
+                        kategori: 'Wheel Loader',
+                        modelUnit: 'SDLG LG936L',
+                        site: 'Stockpile Crusher 1',
+                        operator: 'Dedi Kurniawan',
+                        statusOperasi: 'Aktif',
+                        W: 195,
+                        S: 45,
+                        R: 30,
+                        targetPA: 86,
+                        hmAwal: 3100,
+                        hmAkhir: 3295,
+                        solar: 2630,
+                        stdFuel: 14.5,
+                        hmServis: 3120,
+                        interval: 250,
+                        batasSegera: 50,
+                        jenisPM: 'PM-250',
+                        logs: [
+                            {
+                                id: 'log-401',
+                                type: 'DAILY',
+                                date: '2026-11-19',
+                                summary: '+8,0 W | +1,0 S | +110 L Solar → HM 3.295',
+                                note: 'Feeding hopper crusher & perawatan stockpile'
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            // State Aplikasi Global
+            let appState = null;
+            let saveIndicatorTimer = null;
+
+            // Formatter Angka Standar Indonesia
+            const fmtDec1 = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            const fmtDec2 = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const fmtInt = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+
+            function formatRupiah(num) {
+                const safe = Number.isFinite(num) ? Math.round(num) : 0;
+                return 'Rp ' + fmtInt.format(safe);
+            }
+
+            function formatHM(num) {
+                const safe = Number.isFinite(num) ? num : 0;
+                return Number.isInteger(safe) ? fmtInt.format(safe) : fmtDec1.format(safe);
+            }
+
+            function clampPercent(val) {
+                if (!Number.isFinite(val)) return 0;
+                return Math.max(0, Math.min(100, val));
+            }
+
+            function safeNum(val, fallback = 0) {
+                const parsed = parseFloat(val);
+                return Number.isFinite(parsed) ? parsed : fallback;
+            }
+
+            function escapeHTML(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            // Sistem Notifikasi Toast Kustom (Pengganti alert())
+            function showToast(message, type = 'success') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                
+                const styles = {
+                    success: 'bg-forest text-white border-emerald-400/50',
+                    warning: 'bg-amber-800 text-white border-amber-400/50',
+                    error: 'bg-red-800 text-white border-red-400/50'
+                };
+
+                const dotColor = {
+                    success: 'bg-emerald-300',
+                    warning: 'bg-amber-300',
+                    error: 'bg-red-300'
+                };
+
+                toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-xl font-mono text-xs font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type] || styles.success}`;
+                toast.innerHTML = `
+                    <span class="w-2 h-2 rounded-full ${dotColor[type] || dotColor.success} shrink-0"></span>
+                    <span class="leading-snug">${escapeHTML(message)}</span>
+                `;
+                container.appendChild(toast);
+
+                requestAnimationFrame(() => {
+                    toast.classList.remove('translate-y-2', 'opacity-0');
+                });
+
+                setTimeout(() => {
+                    toast.classList.add('translate-y-2', 'opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3200);
+            }
+
+            // Modal Konfirmasi Kustom (Pengganti confirm())
+            function openConfirmModal(title, message, onConfirm, confirmLabel = 'Ya, Lanjutkan', isDanger = true) {
+                const modal = document.getElementById('confirmModal');
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('modalMessage').textContent = message;
+
+                const confirmBtn = document.getElementById('modalConfirmBtn');
+                const iconWrap = document.getElementById('modalIconWrap');
+                confirmBtn.textContent = confirmLabel;
+
+                if (isDanger) {
+                    confirmBtn.className = 'px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 shadow-sm transition-colors cursor-pointer';
+                    iconWrap.className = 'w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center shrink-0';
+                } else {
+                    confirmBtn.className = 'px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-forest hover:bg-forest-light shadow-sm transition-colors cursor-pointer';
+                    iconWrap.className = 'w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0';
+                }
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+
+                const cancelBtn = document.getElementById('modalCancelBtn');
+
+                const cleanup = () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    cancelBtn.onclick = null;
+                    confirmBtn.onclick = null;
+                };
+
+                cancelBtn.onclick = cleanup;
+                confirmBtn.onclick = () => {
+                    cleanup();
+                    onConfirm();
+                };
+            }
+
+            // Penyimpanan Otomatis LocalStorage dengan Proteksi Kuota & Korupsi Data
+            function persistState() {
+                const statusText = document.getElementById('saveStatusText');
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+                    statusText.textContent = 'Menyimpan...';
+                    clearTimeout(saveIndicatorTimer);
+                    saveIndicatorTimer = setTimeout(() => {
+                        statusText.textContent = 'Tersimpan Otomatis';
+                    }, 450);
+                } catch (err) {
+                    console.error('LocalStorage error:', err);
+                    statusText.textContent = 'Gagal Simpan Lokal';
+                    showToast('Peringatan: Penyimpanan lokal penuh atau diblokir browser.', 'error');
+                }
+            }
+
+            function loadStateFromStorage() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+                    const parsed = JSON.parse(raw);
+                    if (!parsed || !Array.isArray(parsed.fleet) || parsed.fleet.length === 0) {
+                        return JSON.parse(JSON.stringify(DEFAULT_STATE));
+                    }
+                    // Sanitasi setiap unit agar tidak ada field hilang
+                    parsed.fleet = parsed.fleet.map((u, idx) => ({
+                        id: u.id || `unit-restored-${idx}-${Date.now()}`,
+                        kodeUnit: String(u.kodeUnit || `UNIT-${idx + 1}`).toUpperCase(),
+                        kategori: u.kategori || 'Excavator',
+                        modelUnit: u.modelUnit || 'Alat Berat',
+                        site: u.site || 'Site Utama',
+                        operator: u.operator || '-',
+                        statusOperasi: u.statusOperasi || 'Aktif',
+                        W: Math.max(0, safeNum(u.W, 0)),
+                        S: Math.max(0, safeNum(u.S, 0)),
+                        R: Math.max(0, safeNum(u.R, 0)),
+                        targetPA: clampPercent(safeNum(u.targetPA, 85)),
+                        hmAwal: Math.max(0, safeNum(u.hmAwal, 0)),
+                        hmAkhir: Math.max(0, safeNum(u.hmAkhir, 0)),
+                        solar: Math.max(0, safeNum(u.solar, 0)),
+                        stdFuel: Math.max(0.1, safeNum(u.stdFuel, 15)),
+                        hmServis: Math.max(0, safeNum(u.hmServis, 0)),
+                        interval: Math.max(1, safeNum(u.interval, 250)),
+                        batasSegera: Math.max(0, safeNum(u.batasSegera, 50)),
+                        jenisPM: u.jenisPM || 'PM-250',
+                        logs: Array.isArray(u.logs) ? u.logs : []
+                    }));
+                    parsed.periodeAktif = parsed.periodeAktif || 'November 2026';
+                    parsed.hargaSolarGlobal = Math.max(0, safeNum(parsed.hargaSolarGlobal, 15000));
+                    if (!parsed.fleet.some(u => u.id === parsed.activeUnitId)) {
+                        parsed.activeUnitId = parsed.fleet[0].id;
+                    }
+                    return parsed;
+                } catch (err) {
+                    console.error('Data localStorage rusak, memulihkan data default:', err);
+                    return JSON.parse(JSON.stringify(DEFAULT_STATE));
+                }
+            }
+
+            // Perhitungan Metrik Teknis Unit (Aman dari 0/0, NaN, Infinity)
+            function computeUnitMetrics(unit) {
+                const W = Math.max(0, safeNum(unit.W, 0));
+                const S = Math.max(0, safeNum(unit.S, 0));
+                const R = Math.max(0, safeNum(unit.R, 0));
+                const targetPA = clampPercent(safeNum(unit.targetPA, 85));
+
+                const totalWSR = W + S + R;
+                const totalWR = W + R;
+                const totalWS = W + S;
+
+                const pa = totalWSR > 0 ? ((W + S) / totalWSR) * 100 : 0;
+                const ma = totalWR > 0 ? (W / totalWR) * 100 : 0;
+                const ua = totalWS > 0 ? (W / totalWS) * 100 : 0;
+                const eu = totalWSR > 0 ? (W / totalWSR) * 100 : 0;
+
+                const hmAwal = Math.max(0, safeNum(unit.hmAwal, 0));
+                const hmAkhir = Math.max(0, safeNum(unit.hmAkhir, 0));
+                const isHMInvalid = hmAkhir < hmAwal;
+                const hmTerpakai = Math.max(0, hmAkhir - hmAwal);
+
+                const solar = Math.max(0, safeNum(unit.solar, 0));
+                const stdFuel = Math.max(0.1, safeNum(unit.stdFuel, 15));
+                const hargaSolar = Math.max(0, safeNum(appState ? appState.hargaSolarGlobal : 15000, 15000));
+
+                const fuelRatio = hmTerpakai > 0 ? (solar / hmTerpakai) : 0;
+                const totalFuelCost = solar * hargaSolar;
+                const costPerHM = hmTerpakai > 0 ? (totalFuelCost / hmTerpakai) : 0;
+
+                let fuelEfficiency = 'NORMAL';
+                if (hmTerpakai === 0 || solar === 0) {
+                    fuelEfficiency = 'STANDBY';
+                } else if (fuelRatio <= stdFuel * 0.95) {
+                    fuelEfficiency = 'HEMAT';
+                } else if (fuelRatio > stdFuel * 1.05) {
+                    fuelEfficiency = 'BOROS';
+                }
+
+                const hmServis = Math.max(0, safeNum(unit.hmServis, 0));
+                const interval = Math.max(1, safeNum(unit.interval, 250));
+                const batasSegera = Math.max(0, safeNum(unit.batasSegera, 50));
+
+                const dueHM = hmServis + interval;
+                const selisih = dueHM - hmAkhir; // positif = sisa, negatif = lewat
+                const hmSejakServis = Math.max(0, hmAkhir - hmServis);
+                const intervalProgressPct = (hmSejakServis / interval) * 100;
+
+                let serviceState = 'SAFE'; // OVERDUE | SOON | SAFE
+                if (hmAkhir > dueHM) {
+                    serviceState = 'OVERDUE';
+                } else if (selisih <= batasSegera) {
+                    serviceState = 'SOON';
+                }
+
+                return {
+                    W, S, R, totalWSR, targetPA,
+                    pa, ma, ua, eu,
+                    hmAwal, hmAkhir, isHMInvalid, hmTerpakai,
+                    solar, stdFuel, hargaSolar,
+                    fuelRatio, totalFuelCost, costPerHM, fuelEfficiency,
+                    hmServis, interval, batasSegera,
+                    dueHM, selisih, intervalProgressPct, serviceState
+                };
+            }
+
+            function getActiveUnit() {
+                if (!appState || appState.fleet.length === 0) return null;
+                let found = appState.fleet.find(u => u.id === appState.activeUnitId);
+                if (!found) {
+                    found = appState.fleet[0];
+                    appState.activeUnitId = found.id;
+                }
+                return found;
+            }
+
+            // Referensi Elemen Input Panel Detail Unit Aktif
+            const detailInputs = {
+                kodeUnit: document.getElementById('inputKodeUnit'),
+                modelUnit: document.getElementById('inputModelUnit'),
+                site: document.getElementById('inputSite'),
+                operator: document.getElementById('inputOperator'),
+                statusOperasi: document.getElementById('inputStatusOperasi'),
+                W: document.getElementById('inputW'),
+                S: document.getElementById('inputS'),
+                R: document.getElementById('inputR'),
+                targetPA: document.getElementById('inputTargetPA'),
+                hmAwal: document.getElementById('inputHMAwal'),
+                hmAkhir: document.getElementById('inputHMAkhir'),
+                solar: document.getElementById('inputSolar'),
+                stdFuel: document.getElementById('inputStdFuel'),
+                hmServis: document.getElementById('inputHMServis'),
+                interval: document.getElementById('inputInterval'),
+                batasSegera: document.getElementById('inputBatasSegera'),
+                jenisPM: document.getElementById('inputJenisPM')
+            };
+
+            // Memuat Nilai Unit Aktif ke Input Panel Detail (Tanpa mengganggu kursor saat mengetik)
+            function populateDetailInputsFromUnit(unit) {
+                if (!unit) return;
+                detailInputs.kodeUnit.value = unit.kodeUnit;
+                detailInputs.modelUnit.value = unit.modelUnit;
+                detailInputs.site.value = unit.site;
+                detailInputs.operator.value = unit.operator;
+                detailInputs.statusOperasi.value = unit.statusOperasi || 'Aktif';
+                detailInputs.W.value = unit.W;
+                detailInputs.S.value = unit.S;
+                detailInputs.R.value = unit.R;
+                detailInputs.targetPA.value = unit.targetPA;
+                detailInputs.hmAwal.value = unit.hmAwal;
+                detailInputs.hmAkhir.value = unit.hmAkhir;
+                detailInputs.solar.value = unit.solar;
+                detailInputs.stdFuel.value = unit.stdFuel;
+                detailInputs.hmServis.value = unit.hmServis;
+                detailInputs.interval.value = unit.interval;
+                detailInputs.batasSegera.value = unit.batasSegera;
+                detailInputs.jenisPM.value = unit.jenisPM;
+            }
+
+            // Render Output Visualisasi, Grafik Bar, Kartu Fuel, Kartu Servis & Log Riwayat
+            function renderActiveUnitVisuals(unit) {
+                if (!unit) return;
+                const m = computeUnitMetrics(unit);
+
+                // Header Panel Unit Aktif
+                document.getElementById('detailHeaderCode').textContent = unit.kodeUnit;
+                document.getElementById('detailHeaderModel').textContent = unit.modelUnit;
+                document.getElementById('detailHeaderCategoryBadge').textContent = unit.kategori;
+                document.getElementById('detailHeaderSite').textContent = unit.site || '-';
+                document.getElementById('detailHeaderOperator').textContent = unit.operator || '-';
+
+                // Validasi visual jika HM Akhir < HM Awal
+                const hmWarning = document.getElementById('hmValidationWarning');
+                if (m.isHMInvalid) {
+                    hmWarning.classList.remove('hidden');
+                    detailInputs.hmAkhir.classList.add('border-red-500', 'bg-red-50/40');
+                } else {
+                    hmWarning.classList.add('hidden');
+                    detailInputs.hmAkhir.classList.remove('border-red-500', 'bg-red-50/40');
+                }
+
+                // Grafik Horizontal Bar PA, MA, UA, EU
+                document.getElementById('valPA').textContent = `${fmtDec1.format(m.pa)}%`;
+                document.getElementById('valMA').textContent = `${fmtDec1.format(m.ma)}%`;
+                document.getElementById('valUA').textContent = `${fmtDec1.format(m.ua)}%`;
+                document.getElementById('valEU').textContent = `${fmtDec1.format(m.eu)}%`;
+
+                document.getElementById('barPA').style.width = `${clampPercent(m.pa)}%`;
+                document.getElementById('targetMarkerPA').style.left = `${m.targetPA}%`;
+                document.getElementById('labelTargetPA').textContent = `${fmtInt.format(m.targetPA)}%`;
+                document.getElementById('barMA').style.width = `${clampPercent(m.ma)}%`;
+                document.getElementById('barUA').style.width = `${clampPercent(m.ua)}%`;
+                document.getElementById('barEU').style.width = `${clampPercent(m.eu)}%`;
+                document.getElementById('valTotalJamOperasi').textContent = `Total W+S+R: ${formatHM(m.totalWSR)} jam`;
+
+                const barPA = document.getElementById('barPA');
+                const badgeTarget = document.getElementById('badgeTargetStatus');
+                if (m.pa < m.targetPA) {
+                    barPA.classList.remove('bg-forest-bar');
+                    barPA.classList.add('bg-red-600');
+                    badgeTarget.textContent = 'PA DI BAWAH TARGET';
+                    badgeTarget.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-red-100 text-red-800';
+                } else {
+                    barPA.classList.remove('bg-red-600');
+                    barPA.classList.add('bg-forest-bar');
+                    badgeTarget.textContent = 'PA MEMENUHI TARGET';
+                    badgeTarget.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800';
+                }
+
+                // Kartu Fuel Ratio & Biaya BBM
+                document.getElementById('valFuelRatio').textContent = `${fmtDec2.format(m.fuelRatio)} L/HM`;
+                document.getElementById('valHMTerpakai').textContent = `${formatHM(m.hmTerpakai)} HM terpakai (HM ${formatHM(m.hmAwal)} → ${formatHM(m.hmAkhir)})`;
+                document.getElementById('valTotalFuelCost').textContent = formatRupiah(m.totalFuelCost);
+                document.getElementById('valCostPerHM').textContent = `${formatRupiah(m.costPerHM)}/HM`;
+
+                const badgeFuel = document.getElementById('badgeFuelStatus');
+                if (m.fuelEfficiency === 'HEMAT') {
+                    badgeFuel.textContent = `HEMAT (Std ${fmtDec1.format(m.stdFuel)})`;
+                    badgeFuel.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800';
+                } else if (m.fuelEfficiency === 'BOROS') {
+                    badgeFuel.textContent = `BOROS (Std ${fmtDec1.format(m.stdFuel)})`;
+                    badgeFuel.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-red-100 text-red-800';
+                } else if (m.fuelEfficiency === 'STANDBY') {
+                    badgeFuel.textContent = `STANDBY (Std ${fmtDec1.format(m.stdFuel)})`;
+                    badgeFuel.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700';
+                } else {
+                    badgeFuel.textContent = `NORMAL (Std ${fmtDec1.format(m.stdFuel)})`;
+                    badgeFuel.className = 'font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800';
+                }
+
+                // Kartu Status Servis Berkala
+                const svcCard = document.getElementById('serviceStatusCard');
+                const svcLabel = document.getElementById('serviceStatusLabel');
+                const svcStatus = document.getElementById('valServiceStatus');
+                const svcDue = document.getElementById('valDueHM');
+                const pmBar = document.getElementById('pmProgressBar');
+
+                document.getElementById('valJenisPMBadge').textContent = unit.jenisPM || 'PM Berkala';
+                document.getElementById('pmStartLabel').textContent = `HM ${formatHM(m.hmServis)}`;
+                document.getElementById('pmEndLabel').textContent = `HM ${formatHM(m.dueHM)}`;
+                document.getElementById('pmPercentLabel').textContent = `${fmtInt.format(m.intervalProgressPct)}% siklus`;
+                pmBar.style.width = `${clampPercent(m.intervalProgressPct)}%`;
+
+                svcCard.className = 'status-card-transition rounded-2xl p-5 shadow-2xs flex-1 flex flex-col justify-between border';
+
+                if (m.serviceState === 'OVERDUE') {
+                    const lewatJam = Math.abs(m.selisih);
+                    svcCard.classList.add('bg-red-50', 'border-red-300');
+                    svcLabel.className = 'font-mono text-xs font-semibold text-red-900/80';
+                    svcStatus.className = 'font-mono font-bold text-2xl sm:text-3xl text-red-700 tracking-tight mt-1';
+                    svcDue.className = 'font-mono text-xs text-red-900/85 mt-0.5';
+                    pmBar.className = 'progress-fill h-full bg-red-600 rounded-full';
+                    svcStatus.textContent = `LEWAT ${formatHM(lewatJam)} jam`;
+                    svcDue.textContent = `due di HM ${formatHM(m.dueHM)} (Saat ini: HM ${formatHM(m.hmAkhir)})`;
+                } else if (m.serviceState === 'SOON') {
+                    svcCard.classList.add('bg-amber-50', 'border-amber-300');
+                    svcLabel.className = 'font-mono text-xs font-semibold text-amber-900/80';
+                    svcStatus.className = 'font-mono font-bold text-2xl sm:text-3xl text-amber-700 tracking-tight mt-1';
+                    svcDue.className = 'font-mono text-xs text-amber-900/85 mt-0.5';
+                    pmBar.className = 'progress-fill h-full bg-amber-500 rounded-full';
+                    svcStatus.textContent = `SEGERA dalam ${formatHM(m.selisih)} jam`;
+                    svcDue.textContent = `due di HM ${formatHM(m.dueHM)} (Saat ini: HM ${formatHM(m.hmAkhir)})`;
+                } else {
+                    svcCard.classList.add('bg-emerald-50', 'border-emerald-300');
+                    svcLabel.className = 'font-mono text-xs font-semibold text-emerald-900/80';
+                    svcStatus.className = 'font-mono font-bold text-2xl sm:text-3xl text-emerald-700 tracking-tight mt-1';
+                    svcDue.className = 'font-mono text-xs text-emerald-900/85 mt-0.5';
+                    pmBar.className = 'progress-fill h-full bg-emerald-600 rounded-full';
+                    svcStatus.textContent = `AMAN - sisa ${formatHM(m.selisih)} jam`;
+                    svcDue.textContent = `due di HM ${formatHM(m.dueHM)} (Saat ini: HM ${formatHM(m.hmAkhir)})`;
+                }
+
+                // Riwayat Log Aktivitas & Servis PM Unit
+                renderUnitActivityLogs(unit);
+            }
+
+            function renderUnitActivityLogs(unit) {
+                const listEl = document.getElementById('unitActivityLogList');
+                document.getElementById('logHistoryUnitCode').textContent = unit.kodeUnit;
+                const logs = Array.isArray(unit.logs) ? unit.logs : [];
+                document.getElementById('logCountBadge').textContent = `${logs.length} Catatan`;
+
+                if (logs.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="p-4 rounded-xl bg-warm-panel/60 border border-dashed border-warm-border text-center font-mono text-xs text-warm-muted">
+                            Belum ada riwayat log harian atau catatan servis PM untuk unit ${escapeHTML(unit.kodeUnit)}.
+                        </div>
+                    `;
+                    return;
+                }
+
+                listEl.innerHTML = logs.map((item) => {
+                    const isService = item.type === 'SERVICE';
+                    const badgeClass = isService
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                    const badgeLabel = isService ? 'SERVIS PM' : 'LOG HARIAN';
+
+                    return `
+                        <div class="p-3 rounded-xl bg-warm-panel/50 border border-warm-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="space-y-0.5">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="font-mono text-[10px] font-bold px-2 py-0.5 rounded border ${badgeClass}">${badgeLabel}</span>
+                                    <span class="font-mono text-[11px] font-semibold text-warm-muted">${escapeHTML(item.date)}</span>
+                                    <span class="font-mono text-xs font-bold text-warm-text">${escapeHTML(item.summary)}</span>
+                                </div>
+                                ${item.note ? `<p class="text-xs text-warm-muted pl-0.5">${escapeHTML(item.note)}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Render 5 KPI Fleet Summary Bar
+            function renderFleetKPIs() {
+                const fleet = appState.fleet;
+                const totalUnits = fleet.length;
+
+                let countAktif = 0;
+                let countStandby = 0;
+                let countBreakdown = 0;
+
+                let sumPA = 0;
+                let sumTargetPA = 0;
+                let sumHM = 0;
+                let sumSolar = 0;
+                let sumFuelCost = 0;
+                let overdueCount = 0;
+                let soonCount = 0;
+
+                fleet.forEach((u) => {
+                    if (u.statusOperasi === 'Standby') countStandby++;
+                    else if (u.statusOperasi === 'Breakdown') countBreakdown++;
+                    else countAktif++;
+
+                    const m = computeUnitMetrics(u);
+                    sumPA += m.pa;
+                    sumTargetPA += m.targetPA;
+                    sumHM += m.hmTerpakai;
+                    sumSolar += m.solar;
+                    sumFuelCost += m.totalFuelCost;
+
+                    if (m.serviceState === 'OVERDUE') overdueCount++;
+                    else if (m.serviceState === 'SOON') soonCount++;
+                });
+
+                const avgPA = totalUnits > 0 ? sumPA / totalUnits : 0;
+                const avgTargetPA = totalUnits > 0 ? sumTargetPA / totalUnits : 85;
+                const avgFuelRatio = sumHM > 0 ? sumSolar / sumHM : 0;
+
+                document.getElementById('headerUnitCount').textContent = `${totalUnits} Unit`;
+                document.getElementById('kpiTotalUnits').textContent = `${totalUnits} Unit`;
+                document.getElementById('kpiStatusBreakdown').textContent = `${countAktif} Aktif • ${countStandby} Standby • ${countBreakdown} B/D`;
+
+                const elAvgPA = document.getElementById('kpiAvgPA');
+                elAvgPA.textContent = `${fmtDec1.format(avgPA)}%`;
+                elAvgPA.className = `font-mono font-bold text-2xl mt-1.5 ${avgPA >= avgTargetPA ? 'text-emerald-700' : 'text-red-700'}`;
+                document.getElementById('kpiAvgPATarget').textContent = `Target Armada: ${fmtDec1.format(avgTargetPA)}%`;
+
+                document.getElementById('kpiTotalHM').textContent = `${formatHM(sumHM)} jam`;
+                document.getElementById('kpiAvgFuelRatio').textContent = `Avg Fuel: ${fmtDec2.format(avgFuelRatio)} L/HM`;
+
+                document.getElementById('kpiTotalSolar').textContent = `${fmtInt.format(sumSolar)} L`;
+                document.getElementById('kpiTotalFuelCost').textContent = formatRupiah(sumFuelCost);
+
+                document.getElementById('kpiOverdueBadge').textContent = `${overdueCount} LEWAT`;
+                document.getElementById('kpiSoonBadge').textContent = `${soonCount} SEGERA`;
+            }
+
+            // Render Tabel Daftar Armada
+            function renderFleetTable() {
+                const tbody = document.getElementById('fleetTableBody');
+                const emptyState = document.getElementById('emptyFleetState');
+
+                const query = document.getElementById('searchUnitInput').value.trim().toLowerCase();
+                const catFilter = document.getElementById('filterCategorySelect').value;
+                const statusFilter = document.getElementById('filterStatusSelect').value;
+
+                document.getElementById('tableCountBadge').textContent = appState.fleet.length;
+
+                const filtered = appState.fleet.filter((u) => {
+                    const m = computeUnitMetrics(u);
+                    const matchesText =
+                        u.kodeUnit.toLowerCase().includes(query) ||
+                        u.modelUnit.toLowerCase().includes(query) ||
+                        (u.kategori || '').toLowerCase().includes(query) ||
+                        (u.site || '').toLowerCase().includes(query) ||
+                        (u.operator || '').toLowerCase().includes(query);
+
+                    const matchesCat = catFilter === 'ALL' || u.kategori === catFilter;
+
+                    let matchesStatus = true;
+                    if (statusFilter === 'OVERDUE') matchesStatus = m.serviceState === 'OVERDUE';
+                    else if (statusFilter === 'SOON') matchesStatus = m.serviceState === 'SOON';
+                    else if (statusFilter === 'SAFE') matchesStatus = m.serviceState === 'SAFE';
+                    else if (statusFilter === 'NEED_SERVICE') matchesStatus = (m.serviceState === 'OVERDUE' || m.serviceState === 'SOON');
+
+                    return matchesText && matchesCat && matchesStatus;
+                });
+
+                tbody.innerHTML = '';
+
+                if (filtered.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                emptyState.classList.add('hidden');
+
+                filtered.forEach((u) => {
+                    const m = computeUnitMetrics(u);
+                    const isSelected = u.id === appState.activeUnitId;
+
+                    // Badge Status Operasi
+                    let opBadge = '<span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-emerald-100 text-emerald-800">Aktif</span>';
+                    if (u.statusOperasi === 'Standby') {
+                        opBadge = '<span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-amber-100 text-amber-800">Standby</span>';
+                    } else if (u.statusOperasi === 'Breakdown') {
+                        opBadge = '<span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-red-100 text-red-800">Breakdown</span>';
+                    }
+
+                    // Badge Status Servis PM
+                    let pmBadge = '';
+                    if (m.serviceState === 'OVERDUE') {
+                        pmBadge = `<span class="status-badge inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">LEWAT ${formatHM(Math.abs(m.selisih))}j</span>`;
+                    } else if (m.serviceState === 'SOON') {
+                        pmBadge = `<span class="status-badge inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">SEGERA ${formatHM(m.selisih)}j</span>`;
+                    } else {
+                        pmBadge = `<span class="status-badge inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">AMAN (${formatHM(m.selisih)}j)</span>`;
+                    }
+
+                    // Warna Fuel Ratio vs Standar
+                    const fuelColor = m.fuelEfficiency === 'BOROS'
+                        ? 'text-red-700 font-bold'
+                        : (m.fuelEfficiency === 'HEMAT' ? 'text-emerald-700 font-bold' : 'text-warm-text font-bold');
+
+                    const tr = document.createElement('tr');
+                    tr.className = `transition-colors cursor-pointer ${isSelected ? 'bg-emerald-50/90 ring-1 ring-inset ring-forest/30' : 'bg-white hover:bg-warm-panel/70'}`;
+
+                    tr.innerHTML = `
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-forest' : 'bg-transparent'}"></span>
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-mono font-bold text-xs text-warm-text">${escapeHTML(u.kodeUnit)}</span>
+                                        <span class="font-mono text-[10px] px-1.5 py-0.2 rounded bg-warm-panel text-warm-muted border border-warm-border">${escapeHTML(u.kategori)}</span>
+                                    </div>
+                                    <div class="font-semibold text-xs text-warm-text">${escapeHTML(u.modelUnit)}</div>
+                                    <div class="text-[11px] text-warm-muted">${escapeHTML(u.site)}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3">${opBadge}</td>
+                        <td class="py-3 px-3 text-right font-mono font-bold ${m.pa < m.targetPA ? 'text-red-700' : 'text-emerald-700'}">
+                            ${fmtDec1.format(m.pa)}%
+                        </td>
+                        <td class="py-3 px-3 text-right font-mono text-warm-text">${fmtDec1.format(m.ma)}%</td>
+                        <td class="py-3 px-3 text-right font-mono text-warm-text">${fmtDec1.format(m.ua)}%</td>
+                        <td class="py-3 px-3 text-right font-mono text-warm-text">${fmtDec1.format(m.eu)}%</td>
+                        <td class="py-3 px-3 text-right font-mono font-semibold text-warm-text">
+                            ${formatHM(m.hmTerpakai)} <span class="text-[10px] text-warm-muted font-normal">HM</span>
+                        </td>
+                        <td class="py-3 px-3 text-right font-mono">
+                            <div class="${fuelColor}">${fmtDec2.format(m.fuelRatio)} <span class="text-[10px] font-normal">L/HM</span></div>
+                            <div class="text-[10px] text-warm-muted">Std ${fmtDec1.format(m.stdFuel)}</div>
+                        </td>
+                        <td class="py-3 px-3">
+                            ${pmBadge}
+                            <div class="font-mono text-[10px] text-warm-muted mt-0.5">Due HM ${formatHM(m.dueHM)}</div>
+                        </td>
+                        <td class="py-3 px-4 text-right no-print">
+                            <div class="inline-flex items-center gap-1">
+                                <button type="button" data-action="daily" data-id="${u.id}" class="px-2 py-1 rounded-lg font-mono text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-forest border border-emerald-200 transition-colors cursor-pointer" title="Input Log Harian">
+                                    + Log
+                                </button>
+                                <button type="button" data-action="pm" data-id="${u.id}" class="px-2 py-1 rounded-lg font-mono text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors cursor-pointer" title="Catat Servis Selesai">
+                                    Servis
+                                </button>
+                                <button type="button" data-action="dup" data-id="${u.id}" class="p-1.5 rounded-lg text-warm-muted hover:text-warm-text hover:bg-warm-panel transition-colors cursor-pointer" title="Duplikat Unit">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
+                                <button type="button" data-action="del" data-id="${u.id}" class="p-1.5 rounded-lg text-warm-muted hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer" title="Hapus Unit">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+
+                    tr.addEventListener('click', (e) => {
+                        const btn = e.target.closest('button[data-action]');
+                        if (btn) {
+                            e.stopPropagation();
+                            const act = btn.dataset.action;
+                            const uid = btn.dataset.id;
+                            if (act === 'daily') openDailyLogModal(uid);
+                            else if (act === 'pm') openServiceCompleteModal(uid);
+                            else if (act === 'dup') duplicateUnitById(uid);
+                            else if (act === 'del') deleteUnitById(uid);
+                            return;
+                        }
+                        selectActiveUnit(u.id);
+                    });
+
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Pilih Unit Aktif & Perbarui Tampilan
+            function selectActiveUnit(unitId) {
+                appState.activeUnitId = unitId;
+                persistState();
+                const unit = getActiveUnit();
+                populateDetailInputsFromUnit(unit);
+                renderActiveUnitVisuals(unit);
+                renderFleetTable();
+            }
+
+            // Sinkronisasi Real-Time dari Panel Detail ke State & Penyimpanan
+            function handleDetailInputChange() {
+                const unit = getActiveUnit();
+                if (!unit) return;
+
+                const rawCode = detailInputs.kodeUnit.value.trim().toUpperCase();
+                if (rawCode) unit.kodeUnit = rawCode;
+                unit.modelUnit = detailInputs.modelUnit.value;
+                unit.site = detailInputs.site.value;
+                unit.operator = detailInputs.operator.value;
+                unit.statusOperasi = detailInputs.statusOperasi.value;
+
+                unit.W = Math.max(0, safeNum(detailInputs.W.value, 0));
+                unit.S = Math.max(0, safeNum(detailInputs.S.value, 0));
+                unit.R = Math.max(0, safeNum(detailInputs.R.value, 0));
+                unit.targetPA = clampPercent(safeNum(detailInputs.targetPA.value, 0));
+
+                unit.hmAwal = Math.max(0, safeNum(detailInputs.hmAwal.value, 0));
+                unit.hmAkhir = Math.max(0, safeNum(detailInputs.hmAkhir.value, 0));
+                unit.solar = Math.max(0, safeNum(detailInputs.solar.value, 0));
+                unit.stdFuel = Math.max(0.1, safeNum(detailInputs.stdFuel.value, 15));
+
+                unit.hmServis = Math.max(0, safeNum(detailInputs.hmServis.value, 0));
+                unit.interval = Math.max(1, safeNum(detailInputs.interval.value, 250));
+                unit.batasSegera = Math.max(0, safeNum(detailInputs.batasSegera.value, 50));
+                unit.jenisPM = detailInputs.jenisPM.value;
+
+                persistState();
+                renderActiveUnitVisuals(unit);
+                renderFleetKPIs();
+                renderFleetTable();
+            }
+
+            // Generator Kode Unit Unik Berikutnya (misal EX-01 -> EX-02)
+            function generateNextUnitCode(prefix) {
+                const cleanPrefix = (prefix || 'UN').toUpperCase().replace(/[^A-Z0-9]/g, '');
+                let maxNum = 0;
+                const regex = new RegExp(`^${cleanPrefix}-(\\d+)$`, 'i');
+
+                appState.fleet.forEach((u) => {
+                    const match = u.kodeUnit.trim().match(regex);
+                    if (match) {
+                        const num = parseInt(match[1], 10);
+                        if (num > maxNum) maxNum = num;
+                    }
+                });
+
+                return `${cleanPrefix}-${String(maxNum + 1).padStart(2, '0')}`;
+            }
+
+            // Duplikat Unit
+            function duplicateUnitById(unitId) {
+                const src = appState.fleet.find(u => u.id === unitId);
+                if (!src) return;
+
+                const prefixMatch = src.kodeUnit.match(/^([A-Z0-9]+)-/i);
+                const prefix = prefixMatch ? prefixMatch[1] : src.kodeUnit.slice(0, 2);
+                const nextCode = generateNextUnitCode(prefix);
+
+                const cloned = {
+                    ...JSON.parse(JSON.stringify(src)),
+                    id: 'unit-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                    kodeUnit: nextCode,
+                    logs: []
+                };
+
+                appState.fleet.unshift(cloned);
+                appState.activeUnitId = cloned.id;
+                persistState();
+                populateDetailInputsFromUnit(cloned);
+                renderActiveUnitVisuals(cloned);
+                renderFleetKPIs();
+                renderFleetTable();
+                showToast(`Unit berhasil diduplikasi menjadi ${nextCode}.`);
+            }
+
+            // Hapus Unit dengan Modal Konfirmasi Kustom
+            function deleteUnitById(unitId) {
+                if (appState.fleet.length <= 1) {
+                    showToast('Minimal harus tersisa 1 unit aktif di dalam daftar armada.', 'warning');
+                    return;
+                }
+                const target = appState.fleet.find(u => u.id === unitId);
+                if (!target) return;
+
+                openConfirmModal(
+                    `Hapus Unit ${target.kodeUnit}?`,
+                    `Data operasional, jadwal servis PM, dan riwayat log untuk ${target.kodeUnit} (${target.modelUnit}) akan dihapus permanen.`,
+                    () => {
+                        appState.fleet = appState.fleet.filter(u => u.id !== unitId);
+                        if (appState.activeUnitId === unitId) {
+                            appState.activeUnitId = appState.fleet[0].id;
+                        }
+                        persistState();
+                        const active = getActiveUnit();
+                        populateDetailInputsFromUnit(active);
+                        renderActiveUnitVisuals(active);
+                        renderFleetKPIs();
+                        renderFleetTable();
+                        showToast(`Unit ${target.kodeUnit} telah dihapus.`, 'warning');
+                    },
+                    'Hapus Unit',
+                    true
+                );
+            }
+
+            // --- MODAL 1: TAMBAH UNIT BARU ---
+            const addModal = document.getElementById('addUnitModal');
+            const newInputs = {
+                kodeUnit: document.getElementById('newKodeUnit'),
+                statusOperasi: document.getElementById('newStatusOperasi'),
+                modelUnit: document.getElementById('newModelUnit'),
+                kategori: document.getElementById('newKategori'),
+                operator: document.getElementById('newOperator'),
+                site: document.getElementById('newSite'),
+                hmAwal: document.getElementById('newHMAwal'),
+                hmAkhir: document.getElementById('newHMAkhir'),
+                solar: document.getElementById('newSolar'),
+                stdFuel: document.getElementById('newStdFuel'),
+                autoSyncW: document.getElementById('newAutoSyncW'),
+                W: document.getElementById('newW'),
+                S: document.getElementById('newS'),
+                R: document.getElementById('newR'),
+                hmServis: document.getElementById('newHMServis'),
+                interval: document.getElementById('newInterval'),
+                batasSegera: document.getElementById('newBatasSegera'),
+                targetPA: document.getElementById('newTargetPA'),
+                jenisPM: document.getElementById('newJenisPM')
+            };
+
+            function applyPresetToNewModal(presetKey) {
+                const p = UNIT_PRESETS[presetKey] || UNIT_PRESETS.EXCAVATOR;
+                newInputs.kategori.value = p.kategori;
+                newInputs.kodeUnit.value = generateNextUnitCode(p.prefix);
+                newInputs.modelUnit.value = p.model;
+                newInputs.interval.value = p.interval;
+                newInputs.batasSegera.value = p.batasSegera;
+                newInputs.stdFuel.value = p.stdFuel;
+                newInputs.targetPA.value = p.targetPA;
+                newInputs.jenisPM.value = p.jenisPM;
+
+                document.querySelectorAll('.preset-btn').forEach((btn) => {
+                    if (btn.dataset.preset === presetKey) {
+                        btn.className = 'preset-btn px-2.5 py-2 rounded-xl border border-forest bg-emerald-50 text-forest font-mono text-xs font-bold text-left transition-all cursor-pointer';
+                    } else {
+                        btn.className = 'preset-btn px-2.5 py-2 rounded-xl border border-warm-border bg-warm-input text-warm-text font-mono text-xs font-bold text-left hover:border-forest transition-all cursor-pointer';
+                    }
+                });
+
+                updateNewUnitPreview();
+            }
+
+            function buildUnitFromAddModal() {
+                return {
+                    id: 'unit-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                    kodeUnit: newInputs.kodeUnit.value.trim().toUpperCase(),
+                    statusOperasi: newInputs.statusOperasi.value || 'Aktif',
+                    modelUnit: newInputs.modelUnit.value.trim() || 'Alat Berat',
+                    kategori: newInputs.kategori.value || 'Excavator',
+                    operator: newInputs.operator.value.trim() || '-',
+                    site: newInputs.site.value.trim() || 'Site Utama',
+                    W: Math.max(0, safeNum(newInputs.W.value, 0)),
+                    S: Math.max(0, safeNum(newInputs.S.value, 0)),
+                    R: Math.max(0, safeNum(newInputs.R.value, 0)),
+                    targetPA: clampPercent(safeNum(newInputs.targetPA.value, 85)),
+                    hmAwal: Math.max(0, safeNum(newInputs.hmAwal.value, 0)),
+                    hmAkhir: Math.max(0, safeNum(newInputs.hmAkhir.value, 0)),
+                    solar: Math.max(0, safeNum(newInputs.solar.value, 0)),
+                    stdFuel: Math.max(0.1, safeNum(newInputs.stdFuel.value, 15)),
+                    hmServis: Math.max(0, safeNum(newInputs.hmServis.value, 0)),
+                    interval: Math.max(1, safeNum(newInputs.interval.value, 250)),
+                    batasSegera: Math.max(0, safeNum(newInputs.batasSegera.value, 50)),
+                    jenisPM: newInputs.jenisPM.value.trim() || 'PM-250',
+                    logs: []
+                };
+            }
+
+            function updateNewUnitPreview() {
+                if (newInputs.autoSyncW.checked) {
+                    const awal = Math.max(0, safeNum(newInputs.hmAwal.value, 0));
+                    const akhir = Math.max(0, safeNum(newInputs.hmAkhir.value, 0));
+                    newInputs.W.value = Math.max(0, akhir - awal);
+                }
+
+                const draft = buildUnitFromAddModal();
+                const m = computeUnitMetrics(draft);
+
+                const elPA = document.getElementById('previewNewPA');
+                elPA.textContent = `${fmtDec1.format(m.pa)}%`;
+                elPA.className = `font-bold text-base ${m.pa < m.targetPA ? 'text-red-700' : 'text-emerald-700'}`;
+
+                document.getElementById('previewNewFuel').textContent = `${fmtDec2.format(m.fuelRatio)} L/HM`;
+
+                const elSvc = document.getElementById('previewNewService');
+                if (m.serviceState === 'OVERDUE') {
+                    elSvc.textContent = `LEWAT ${formatHM(Math.abs(m.selisih))} jam`;
+                    elSvc.className = 'font-bold text-sm text-red-700';
+                } else if (m.serviceState === 'SOON') {
+                    elSvc.textContent = `SEGERA dalam ${formatHM(m.selisih)} jam`;
+                    elSvc.className = 'font-bold text-sm text-amber-700';
+                } else {
+                    elSvc.textContent = `AMAN - sisa ${formatHM(m.selisih)} jam`;
+                    elSvc.className = 'font-bold text-sm text-emerald-700';
+                }
+
+                const valMsg = document.getElementById('newUnitValidationMsg');
+                if (!draft.kodeUnit) {
+                    valMsg.textContent = '⚠ Kode Unit tidak boleh kosong.';
+                    valMsg.classList.remove('hidden');
+                } else if (appState.fleet.some(u => u.kodeUnit.toUpperCase() === draft.kodeUnit)) {
+                    valMsg.textContent = `⚠ Kode "${draft.kodeUnit}" sudah digunakan!`;
+                    valMsg.classList.remove('hidden');
+                } else if (draft.hmAkhir < draft.hmAwal) {
+                    valMsg.textContent = '⚠ HM Saat Ini lebih kecil dari HM Awal!';
+                    valMsg.classList.remove('hidden');
+                } else {
+                    valMsg.classList.add('hidden');
+                }
+            }
+
+            function openAddUnitModal(defaultPreset = 'EXCAVATOR') {
+                applyPresetToNewModal(defaultPreset);
+                addModal.classList.remove('hidden');
+                addModal.classList.add('flex');
+                setTimeout(() => {
+                    newInputs.kodeUnit.focus();
+                    newInputs.kodeUnit.select();
+                }, 40);
+            }
+
+            function closeAddUnitModal() {
+                addModal.classList.add('hidden');
+                addModal.classList.remove('flex');
+            }
+
+            function saveNewUnitFromModal(keepOpen = false) {
+                const newUnit = buildUnitFromAddModal();
+                if (!newUnit.kodeUnit) {
+                    showToast('Kode Unit wajib diisi!', 'error');
+                    newInputs.kodeUnit.focus();
+                    return;
+                }
+                if (appState.fleet.some(u => u.kodeUnit.toUpperCase() === newUnit.kodeUnit)) {
+                    showToast(`Kode unit "${newUnit.kodeUnit}" sudah terdaftar! Gunakan kode unik.`, 'error');
+                    newInputs.kodeUnit.focus();
+                    return;
+                }
+
+                appState.fleet.unshift(newUnit);
+                appState.activeUnitId = newUnit.id;
+                persistState();
+
+                populateDetailInputsFromUnit(newUnit);
+                renderActiveUnitVisuals(newUnit);
+                renderFleetKPIs();
+                renderFleetTable();
+                showToast(`Unit ${newUnit.kodeUnit} (${newUnit.modelUnit}) berhasil ditambahkan.`);
+
+                if (keepOpen) {
+                    const prefixMatch = newUnit.kodeUnit.match(/^([A-Z0-9]+)-/i);
+                    const nextPrefix = prefixMatch ? prefixMatch[1] : 'UN';
+                    newInputs.kodeUnit.value = generateNextUnitCode(nextPrefix);
+                    updateNewUnitPreview();
+                    newInputs.kodeUnit.focus();
+                    newInputs.kodeUnit.select();
+                } else {
+                    closeAddUnitModal();
+                }
+            }
+
+            // --- MODAL 2: INPUT LOG HARIAN ---
+            const dailyModal = document.getElementById('dailyLogModal');
+            let dailyTargetUnitId = null;
+
+            function openDailyLogModal(unitId) {
+                const unit = appState.fleet.find(u => u.id === unitId);
+                if (!unit) return;
+                dailyTargetUnitId = unit.id;
+
+                document.getElementById('dailyLogSubtitle').textContent = `${unit.kodeUnit} — ${unit.modelUnit}`;
+                document.getElementById('dailyLogDate').value = new Date().toISOString().slice(0, 10);
+                document.getElementById('dailyPrevHMDisplay').textContent = `${formatHM(unit.hmAkhir)} HM`;
+                document.getElementById('dailyAddW').value = 8;
+                document.getElementById('dailyAddS').value = 2;
+                document.getElementById('dailyAddR').value = 0;
+                document.getElementById('dailyAddSolar').value = Math.round(unit.stdFuel * 8);
+                document.getElementById('dailyAutoSyncHM').checked = true;
+                document.getElementById('dailyNote').value = '';
+
+                syncDailyModalHM(unit);
+
+                dailyModal.classList.remove('hidden');
+                dailyModal.classList.add('flex');
+            }
+
+            function syncDailyModalHM(unit) {
+                const target = unit || appState.fleet.find(u => u.id === dailyTargetUnitId);
+                if (!target) return;
+                const addW = Math.max(0, safeNum(document.getElementById('dailyAddW').value, 0));
+                const autoSync = document.getElementById('dailyAutoSyncHM').checked;
+                const hmInput = document.getElementById('dailyManualHMAkhir');
+
+                if (autoSync) {
+                    hmInput.value = target.hmAkhir + addW;
+                }
+                const finalHM = Math.max(0, safeNum(hmInput.value, target.hmAkhir + addW));
+                document.getElementById('dailyNewHMPreview').textContent = `${formatHM(finalHM)} HM`;
+            }
+
+            function closeDailyLogModal() {
+                dailyModal.classList.add('hidden');
+                dailyModal.classList.remove('flex');
+                dailyTargetUnitId = null;
+            }
+
+            function submitDailyLog() {
+                const unit = appState.fleet.find(u => u.id === dailyTargetUnitId);
+                if (!unit) return;
+
+                const dateVal = document.getElementById('dailyLogDate').value || new Date().toISOString().slice(0, 10);
+                const addW = Math.max(0, safeNum(document.getElementById('dailyAddW').value, 0));
+                const addS = Math.max(0, safeNum(document.getElementById('dailyAddS').value, 0));
+                const addR = Math.max(0, safeNum(document.getElementById('dailyAddR').value, 0));
+                const addSolar = Math.max(0, safeNum(document.getElementById('dailyAddSolar').value, 0));
+                const newHMAkhir = Math.max(0, safeNum(document.getElementById('dailyManualHMAkhir').value, unit.hmAkhir + addW));
+                const note = document.getElementById('dailyNote').value.trim();
+
+                unit.W += addW;
+                unit.S += addS;
+                unit.R += addR;
+                unit.solar += addSolar;
+                unit.hmAkhir = newHMAkhir;
+
+                if (!Array.isArray(unit.logs)) unit.logs = [];
+                unit.logs.unshift({
+                    id: 'log-' + Date.now(),
+                    type: 'DAILY',
+                    date: dateVal,
+                    summary: `+${fmtDec1.format(addW)} W | +${fmtDec1.format(addS)} S | +${fmtDec1.format(addR)} R | +${fmtInt.format(addSolar)} L → HM ${formatHM(newHMAkhir)}`,
+                    note: note || 'Input log operasional harian'
+                });
+
+                appState.activeUnitId = unit.id;
+                persistState();
+                populateDetailInputsFromUnit(unit);
+                renderActiveUnitVisuals(unit);
+                renderFleetKPIs();
+                renderFleetTable();
+                closeDailyLogModal();
+                showToast(`Log harian untuk ${unit.kodeUnit} berhasil disimpan.`);
+            }
+
+            // --- MODAL 3: CATAT SERVIS SELESAI ---
+            const pmModal = document.getElementById('serviceCompleteModal');
+            let pmTargetUnitId = null;
+
+            function openServiceCompleteModal(unitId) {
+                const unit = appState.fleet.find(u => u.id === unitId);
+                if (!unit) return;
+                pmTargetUnitId = unit.id;
+
+                document.getElementById('pmModalSubtitle').textContent = `${unit.kodeUnit} — ${unit.modelUnit}`;
+                document.getElementById('pmCurrentHMInfo').textContent = `${formatHM(unit.hmAkhir)} HM`;
+                document.getElementById('pmPrevHMInfo').textContent = `${formatHM(unit.hmServis)} HM`;
+                document.getElementById('pmExecutionHM').value = unit.hmAkhir;
+                document.getElementById('pmMechanicNote').value = '';
+
+                const pkgSelect = document.getElementById('pmPackageType');
+                if ([...pkgSelect.options].some(o => o.value === unit.jenisPM)) {
+                    pkgSelect.value = unit.jenisPM;
+                } else {
+                    pkgSelect.value = 'PM-250';
+                }
+
+                updatePMNextDuePreview(unit);
+
+                pmModal.classList.remove('hidden');
+                pmModal.classList.add('flex');
+            }
+
+            function updatePMNextDuePreview(unit) {
+                const target = unit || appState.fleet.find(u => u.id === pmTargetUnitId);
+                if (!target) return;
+                const execHM = Math.max(0, safeNum(document.getElementById('pmExecutionHM').value, target.hmAkhir));
+                document.getElementById('pmNextDuePreview').textContent = `HM ${formatHM(execHM + target.interval)}`;
+            }
+
+            function closeServiceCompleteModal() {
+                pmModal.classList.add('hidden');
+                pmModal.classList.remove('flex');
+                pmTargetUnitId = null;
+            }
+
+            function submitServiceComplete() {
+                const unit = appState.fleet.find(u => u.id === pmTargetUnitId);
+                if (!unit) return;
+
+                const execHM = Math.max(0, safeNum(document.getElementById('pmExecutionHM').value, unit.hmAkhir));
+                const pkg = document.getElementById('pmPackageType').value;
+                const note = document.getElementById('pmMechanicNote').value.trim();
+                const todayStr = new Date().toISOString().slice(0, 10);
+
+                unit.hmServis = execHM;
+                if (execHM > unit.hmAkhir) {
+                    unit.hmAkhir = execHM;
+                }
+                unit.jenisPM = pkg;
+                if (unit.statusOperasi === 'Breakdown') {
+                    unit.statusOperasi = 'Aktif';
+                }
+
+                if (!Array.isArray(unit.logs)) unit.logs = [];
+                unit.logs.unshift({
+                    id: 'pm-' + Date.now(),
+                    type: 'SERVICE',
+                    date: todayStr,
+                    summary: `${pkg} Selesai di HM ${formatHM(execHM)} (Next Due: HM ${formatHM(execHM + unit.interval)})`,
+                    note: note || 'Preventive maintenance berkala selesai dilaksanakan'
+                });
+
+                appState.activeUnitId = unit.id;
+                persistState();
+                populateDetailInputsFromUnit(unit);
+                renderActiveUnitVisuals(unit);
+                renderFleetKPIs();
+                renderFleetTable();
+                closeServiceCompleteModal();
+                showToast(`Servis ${pkg} untuk ${unit.kodeUnit} dicatat selesai di HM ${formatHM(execHM)}.`);
+            }
+
+            // --- EXPORT CSV (EXCEL-FRIENDLY UTF-8 BOM + PEMISAH TITIK KOMA) ---
+            function exportFleetToCSV() {
+                if (!appState.fleet.length) {
+                    showToast('Tidak ada data unit untuk di-export.', 'error');
+                    return;
+                }
+
+                const sep = ';'; // Titik koma agar langsung terpisah kolom rapi di Excel regional Indonesia
+                const headers = [
+                    'Periode', 'Kode Unit', 'Kategori', 'Model Alat', 'Lokasi/Site', 'Operator/PIC', 'Status Operasi',
+                    'Working W (Jam)', 'Standby S (Jam)', 'Repair R (Jam)', 'Target PA (%)',
+                    'PA (%)', 'MA (%)', 'UA (%)', 'EU (%)',
+                    'HM Awal', 'HM Akhir', 'HM Terpakai',
+                    'Solar Terisi (L)', 'Standar Solar (L/HM)', 'Fuel Ratio (L/HM)',
+                    'Harga Solar/L (Rp)', 'Total Biaya Solar (Rp)', 'Biaya BBM/HM (Rp)',
+                    'HM Servis Terakhir', 'Interval Servis (Jam)', 'Due HM', 'Selisih Jam Servis', 'Status Servis PM'
+                ];
+
+                const rows = appState.fleet.map((u) => {
+                    const m = computeUnitMetrics(u);
+                    const statusPM = m.serviceState === 'OVERDUE'
+                        ? `LEWAT ${Math.abs(m.selisih)} jam`
+                        : (m.serviceState === 'SOON' ? `SEGERA (${m.selisih} jam)` : `AMAN (sisa ${m.selisih} jam)`);
+
+                    return [
+                        appState.periodeAktif, u.kodeUnit, u.kategori, u.modelUnit, u.site, u.operator, u.statusOperasi,
+                        m.W, m.S, m.R, m.targetPA,
+                        m.pa.toFixed(1).replace('.', ','),
+                        m.ma.toFixed(1).replace('.', ','),
+                        m.ua.toFixed(1).replace('.', ','),
+                        m.eu.toFixed(1).replace('.', ','),
+                        m.hmAwal, m.hmAkhir, m.hmTerpakai,
+                        m.solar,
+                        m.stdFuel.toFixed(1).replace('.', ','),
+                        m.fuelRatio.toFixed(2).replace('.', ','),
+                        Math.round(m.hargaSolar),
+                        Math.round(m.totalFuelCost),
+                        Math.round(m.costPerHM),
+                        m.hmServis, m.interval, m.dueHM, m.selisih, statusPM
+                    ].map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(sep);
+                });
+
+                const csvContent = '\uFEFF' + [headers.join(sep), ...rows].join('\r\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                const dateStr = new Date().toISOString().slice(0, 10);
+                link.href = url;
+                link.setAttribute('download', `Monitoring_Alat_Berat_2026_${dateStr}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showToast('Laporan CSV (Excel-friendly) berhasil diunduh.');
+            }
+
+            // --- BACKUP & RESTORE JSON ---
+            function backupFleetToJSON() {
+                const payload = {
+                    application: 'Monitoring Alat Berat 2026',
+                    version: '1.0',
+                    exportedAt: new Date().toISOString(),
+                    data: appState
+                };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                const dateStr = new Date().toISOString().slice(0, 10);
+                link.href = url;
+                link.setAttribute('download', `Backup_Armada_2026_${dateStr}.json`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showToast('Backup JSON berhasil diunduh.');
+            }
+
+            function handleRestoreJSONFile(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        const candidate = parsed && parsed.data && Array.isArray(parsed.data.fleet)
+                            ? parsed.data
+                            : (parsed && Array.isArray(parsed.fleet) ? parsed : null);
+
+                        if (!candidate || candidate.fleet.length === 0) {
+                            throw new Error('Struktur JSON tidak valid.');
+                        }
+
+                        openConfirmModal(
+                            'Restore Data dari File Backup JSON?',
+                            `File "${file.name}" berisi ${candidate.fleet.length} unit armada. Data saat ini akan digantikan dengan data dari file backup.`,
+                            () => {
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate));
+                                appState = loadStateFromStorage();
+                                syncGlobalHeaderInputs();
+                                const active = getActiveUnit();
+                                populateDetailInputsFromUnit(active);
+                                renderActiveUnitVisuals(active);
+                                renderFleetKPIs();
+                                renderFleetTable();
+                                showToast(`Berhasil memulihkan ${appState.fleet.length} unit dari backup JSON.`);
+                            },
+                            'Ya, Restore Data',
+                            false
+                        );
+                    } catch (err) {
+                        showToast('Gagal membaca file JSON: pastikan format file backup valid.', 'error');
+                    } finally {
+                        event.target.value = '';
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // Sinkronisasi Header Global (Periode & Harga Solar Rupiah)
+            function syncGlobalHeaderInputs() {
+                document.getElementById('globalPeriodeInput').value = appState.periodeAktif;
+                document.getElementById('globalHargaSolarInput').value = fmtInt.format(appState.hargaSolarGlobal);
+            }
+
+            // --- PASANG SELURUH EVENT LISTENER ---
+            function bindEvents() {
+                // Header Global Inputs
+                document.getElementById('globalPeriodeInput').addEventListener('input', function () {
+                    appState.periodeAktif = this.value.trim() || 'November 2026';
+                    persistState();
+                });
+
+                const hargaInput = document.getElementById('globalHargaSolarInput');
+                hargaInput.addEventListener('input', function () {
+                    const digitsOnly = this.value.replace(/\D/g, '');
+                    const numVal = digitsOnly ? parseInt(digitsOnly, 10) : 0;
+                    appState.hargaSolarGlobal = numVal;
+                    this.value = digitsOnly ? fmtInt.format(numVal) : '';
+                    persistState();
+                    renderActiveUnitVisuals(getActiveUnit());
+                    renderFleetKPIs();
+                });
+
+                // Tombol Aksi Utama Header
+                document.getElementById('btnNewUnit').addEventListener('click', () => openAddUnitModal('EXCAVATOR'));
+                document.getElementById('btnExportCSV').addEventListener('click', exportFleetToCSV);
+                document.getElementById('btnBackupJSON').addEventListener('click', backupFleetToJSON);
+                document.getElementById('btnRestoreJSON').addEventListener('click', () => {
+                    document.getElementById('importJsonFileInput').click();
+                });
+                document.getElementById('importJsonFileInput').addEventListener('change', handleRestoreJSONFile);
+                document.getElementById('btnPrintReport').addEventListener('click', () => window.print());
+
+                document.getElementById('btnResetFleet').addEventListener('click', () => {
+                    openConfirmModal(
+                        'Reset Data ke 4 Unit Contoh Awal?',
+                        'Seluruh perubahan kustom dan penambahan unit saat ini akan dihapus dan dikembalikan ke 4 unit contoh (EX-01, DT-05, DZ-02, WL-03).',
+                        () => {
+                            appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                            persistState();
+                            syncGlobalHeaderInputs();
+                            const active = getActiveUnit();
+                            populateDetailInputsFromUnit(active);
+                            renderActiveUnitVisuals(active);
+                            renderFleetKPIs();
+                            renderFleetTable();
+                            showToast('Data armada berhasil di-reset ke contoh awal.');
+                        },
+                        'Reset Data',
+                        true
+                    );
+                });
+
+                // KPI Peringatan Servis (Klik untuk filter unit bermasalah)
+                document.getElementById('kpiServiceAlertCard').addEventListener('click', () => {
+                    const filterSelect = document.getElementById('filterStatusSelect');
+                    filterSelect.value = 'NEED_SERVICE';
+                    renderFleetTable();
+                    showToast('Menampilkan unit dengan status servis LEWAT & SEGERA.', 'warning');
+                });
+
+                // Filter & Pencarian Tabel
+                document.getElementById('searchUnitInput').addEventListener('input', renderFleetTable);
+                document.getElementById('filterCategorySelect').addEventListener('change', renderFleetTable);
+                document.getElementById('filterStatusSelect').addEventListener('change', renderFleetTable);
+                document.getElementById('btnResetFilters').addEventListener('click', () => {
+                    document.getElementById('searchUnitInput').value = '';
+                    document.getElementById('filterCategorySelect').value = 'ALL';
+                    document.getElementById('filterStatusSelect').value = 'ALL';
+                    renderFleetTable();
+                });
+
+                // Aksi Cepat Panel Detail Unit Aktif
+                document.getElementById('btnOpenDailyModal').addEventListener('click', () => {
+                    const u = getActiveUnit();
+                    if (u) openDailyLogModal(u.id);
+                });
+                document.getElementById('btnOpenPMModal').addEventListener('click', () => {
+                    const u = getActiveUnit();
+                    if (u) openServiceCompleteModal(u.id);
+                });
+                document.getElementById('btnDuplicateUnit').addEventListener('click', () => {
+                    const u = getActiveUnit();
+                    if (u) duplicateUnitById(u.id);
+                });
+                document.getElementById('btnDeleteActiveUnit').addEventListener('click', () => {
+                    const u = getActiveUnit();
+                    if (u) deleteUnitById(u.id);
+                });
+
+                // Real-time Input Listeners Panel Detail Unit Aktif
+                Object.values(detailInputs).forEach((el) => {
+                    el.addEventListener('input', handleDetailInputChange);
+                    el.addEventListener('change', handleDetailInputChange);
+                });
+
+                // Modal Tambah Unit Baru Listeners
+                document.querySelectorAll('.preset-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => applyPresetToNewModal(btn.dataset.preset));
+                });
+                Object.values(newInputs).forEach((el) => {
+                    el.addEventListener('input', updateNewUnitPreview);
+                    el.addEventListener('change', updateNewUnitPreview);
+                });
+                document.getElementById('btnCloseAddModal').addEventListener('click', closeAddUnitModal);
+                document.getElementById('btnCancelAddModal').addEventListener('click', closeAddUnitModal);
+                document.getElementById('btnConfirmAddUnit').addEventListener('click', () => saveNewUnitFromModal(false));
+                document.getElementById('btnSaveAndAddAnother').addEventListener('click', () => saveNewUnitFromModal(true));
+
+                // Modal Input Log Harian Listeners
+                document.getElementById('dailyAddW').addEventListener('input', () => syncDailyModalHM());
+                document.getElementById('dailyAutoSyncHM').addEventListener('change', () => syncDailyModalHM());
+                document.getElementById('dailyManualHMAkhir').addEventListener('input', () => {
+                    document.getElementById('dailyAutoSyncHM').checked = false;
+                    syncDailyModalHM();
+                });
+                document.getElementById('btnCloseDailyModal').addEventListener('click', closeDailyLogModal);
+                document.getElementById('btnCancelDailyModal').addEventListener('click', closeDailyLogModal);
+                document.getElementById('btnConfirmDailyLog').addEventListener('click', submitDailyLog);
+
+                // Modal Catat Servis Selesai Listeners
+                document.getElementById('pmExecutionHM').addEventListener('input', () => updatePMNextDuePreview());
+                document.getElementById('btnClosePMModal').addEventListener('click', closeServiceCompleteModal);
+                document.getElementById('btnCancelPMModal').addEventListener('click', closeServiceCompleteModal);
+                document.getElementById('btnConfirmPMComplete').addEventListener('click', submitServiceComplete);
+            }
+
+            // Inisialisasi Aplikasi
+            appState = loadStateFromStorage();
+            syncGlobalHeaderInputs();
+            const initialActive = getActiveUnit();
+            populateDetailInputsFromUnit(initialActive);
+            renderActiveUnitVisuals(initialActive);
+            renderFleetKPIs();
+            renderFleetTable();
+            bindEvents();
+        })();
+    </script>
+</body>
+</html>

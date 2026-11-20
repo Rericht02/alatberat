@@ -1,0 +1,6 @@
+{
+  "name": "Monitoring Alat Berat 2026",
+  "description": "Sistem Manajemen Armada, Ketersediaan (PA/MA/UA/EU), Konsumsi BBM & Preventive Maintenance Alat Berat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

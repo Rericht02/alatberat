@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-forest: #113D23;
+  --color-forest-dark: #0B2917;
+  --color-forest-light: #1B5734;
+  --color-forest-bar: #15803D;
+
+  --color-warm-bg: #ECE9E1;
+  --color-warm-card: #FFFFFF;
+  --color-warm-panel: #F7F5F0;
+  --color-warm-border: #D8D3C8;
+  --color-warm-input: #FCFBF8;
+  --color-warm-text: #18181B;
+  --color-warm-muted: #52525B;
+
+  --color-safety-orange: #EA580C;
+  --color-safety-orange-hover: #C2410C;
+  --color-gold-focus: #B45309;
+}
+
+@layer base {
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f4f4f1;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+.progress-fill {
+  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease;
+}
+
+.target-marker {
+  transition: left 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.status-card-transition {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  body {
+    background: #ffffff !important;
+    padding: 0 !important;
+    color: #000000 !important;
+    font-size: 11px !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-container {
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  header {
+    background-color: #113D23 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    padding: 12px 16px !important;
+  }
+  .progress-fill,
+  .status-badge,
+  .service-status-card {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-break-inside {
+    break-inside: avoid;
+    margin-bottom: 12px !important;
+  }
+  .print-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+  .print-modal-shell {
+    max-width: 100% !important;
+    max-height: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+  .print-sheet-wrapper {
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+  .print-sheet {
+    border: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  input,
+  select {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}
