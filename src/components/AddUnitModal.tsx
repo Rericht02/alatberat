@@ -216,7 +216,7 @@ export function AddUnitModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-3 sm:p-5 overflow-y-auto no-print"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[2px] p-0 sm:p-5 overflow-y-auto no-print"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-unit-modal-title"
@@ -224,7 +224,7 @@ export function AddUnitModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-warm-card rounded-2xl border border-warm-border shadow-2xl max-w-4xl w-full my-auto overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-warm-card rounded-t-3xl sm:rounded-2xl border border-warm-border shadow-2xl max-w-4xl w-full sm:my-auto overflow-hidden flex flex-col max-h-[92dvh]">
         {/* Header Modal */}
         <div className="bg-forest px-5 py-4 sm:px-6 flex items-center justify-between text-white shrink-0">
           <div className="flex items-center gap-3">
@@ -714,25 +714,25 @@ export function AddUnitModal({
         </div>
 
         {/* Footer Modal */}
-        <div className="bg-white px-5 py-3.5 sm:px-6 border-t border-warm-border flex flex-wrap items-center justify-end gap-2.5 shrink-0">
+        <div className="bg-white px-4 py-3 sm:px-6 sm:py-3.5 border-t border-warm-border grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-end gap-2 shrink-0 pb-safe">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold text-warm-muted hover:bg-warm-panel border border-warm-border transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="min-h-[44px] sm:min-h-0 px-4 py-2.5 rounded-xl text-xs font-semibold text-warm-muted hover:bg-warm-panel border border-warm-border transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             Batal
           </button>
           <button
             type="button"
             onClick={() => handleSave(true)}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-forest bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="min-h-[44px] sm:min-h-0 px-4 py-2.5 rounded-xl text-xs font-bold text-forest bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
-            Simpan &amp; Tambah Lagi
+            Simpan &amp; Lagi
           </button>
           <button
             type="button"
             onClick={() => handleSave(false)}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-safety-orange hover:bg-safety-orange-hover shadow-sm transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="col-span-2 sm:col-span-1 min-h-[44px] sm:min-h-0 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-safety-orange hover:bg-safety-orange-hover shadow-sm transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             Simpan Unit
           </button>

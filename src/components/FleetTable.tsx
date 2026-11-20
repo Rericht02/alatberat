@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Copy, Search, Trash2 } from 'lucide-react';
+import { ChevronRight, Copy, Search, Trash2 } from 'lucide-react';
 import { UNIT_CATEGORIES } from '../data/presets';
 import type { HeavyUnit, ServiceFilterValue } from '../types/fleet';
 import {
@@ -87,19 +87,22 @@ export function FleetTable({
             Daftar Armada &amp; Status Operasional ({fleet.length} Unit)
           </h2>
           <p className="text-xs text-warm-muted">
-            Klik baris unit untuk membuka &amp; mengedit rincian pada Panel Kalkulator di bawah
+            <span className="md:hidden">Ketuk kartu unit untuk membuka kalkulator &amp; edit data</span>
+            <span className="hidden md:inline">
+              Klik baris unit untuk membuka &amp; mengedit rincian pada Panel Kalkulator di bawah
+            </span>
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 no-print">
-          <div className="relative flex-1 sm:flex-initial sm:w-56">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 no-print">
+          <div className="relative col-span-2 sm:w-56">
             <Search className="w-4 h-4 text-warm-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Cari kode, merek, site..."
-              className="w-full pl-9 pr-3 py-2 text-xs font-sans bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest"
+              className="w-full min-h-[44px] md:min-h-0 pl-9 pr-3 py-2 text-base sm:text-xs font-sans bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest"
             />
           </div>
 
@@ -107,7 +110,7 @@ export function FleetTable({
             value={categoryFilter}
             onChange={(e) => onCategoryFilterChange(e.target.value)}
             aria-label="Filter kategori alat berat"
-            className="px-3 py-2 text-xs font-mono font-medium bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest cursor-pointer"
+            className="min-h-[44px] md:min-h-0 px-3 py-2 text-sm sm:text-xs font-mono font-medium bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest cursor-pointer"
           >
             <option value="ALL">Semua Kategori</option>
             {UNIT_CATEGORIES.map((cat) => (
@@ -121,19 +124,171 @@ export function FleetTable({
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value as ServiceFilterValue)}
             aria-label="Filter status servis PM"
-            className="px-3 py-2 text-xs font-mono font-medium bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest cursor-pointer"
+            className="min-h-[44px] md:min-h-0 px-3 py-2 text-sm sm:text-xs font-mono font-medium bg-white border border-warm-border rounded-xl focus:outline-none focus:border-forest cursor-pointer"
           >
-            <option value="ALL">Semua Status Servis</option>
-            <option value="NEED_SERVICE">Perlu Servis (Lewat &amp; Segera)</option>
-            <option value="OVERDUE">Lewat Servis (Overdue)</option>
+            <option value="ALL">Semua Servis</option>
+            <option value="NEED_SERVICE">Perlu Servis</option>
+            <option value="OVERDUE">Lewat Servis</option>
             <option value="SOON">Segera Servis</option>
             <option value="SAFE">Servis Aman</option>
           </select>
         </div>
       </div>
 
-      {/* Tabel Responsif */}
-      <div className="overflow-x-auto">
+      {/* MOBILE CARD LIST (< md) — Tanpa horizontal scroll yang menyulitkan di HP */}
+      {filteredRows.length > 0 && (
+        <div className="md:hidden divide-y divide-warm-border">
+          {filteredRows.map(({ unit, metrics }) => {
+            const isSelected = unit.id === activeUnitId;
+
+            const opStatusClass =
+              unit.statusOperasi === 'Standby'
+                ? 'text-amber-800 bg-amber-100/80'
+                : unit.statusOperasi === 'Breakdown'
+                  ? 'text-red-800 bg-red-100/80'
+                  : 'text-emerald-800 bg-emerald-100/80';
+
+            const pmStatusClass =
+              metrics.serviceState === 'OVERDUE'
+                ? 'text-red-800 bg-red-100 border-red-200'
+                : metrics.serviceState === 'SOON'
+                  ? 'text-amber-800 bg-amber-100 border-amber-200'
+                  : 'text-emerald-800 bg-emerald-100 border-emerald-200';
+
+            const pmStatusText =
+              metrics.serviceState === 'OVERDUE'
+                ? `LEWAT ${formatHM(Math.abs(metrics.selisih))}j`
+                : metrics.serviceState === 'SOON'
+                  ? `SEGERA ${formatHM(metrics.selisih)}j`
+                  : `AMAN (${formatHM(metrics.selisih)}j)`;
+
+            const fuelColor =
+              metrics.fuelEfficiency === 'BOROS'
+                ? 'text-red-700'
+                : metrics.fuelEfficiency === 'HEMAT'
+                  ? 'text-emerald-700'
+                  : 'text-warm-text';
+
+            return (
+              <div
+                key={unit.id}
+                onClick={() => onSelectUnit(unit.id)}
+                className={`p-4 space-y-3 transition-colors cursor-pointer ${
+                  isSelected ? 'bg-emerald-50/75' : 'bg-white active:bg-warm-panel/80'
+                }`}
+              >
+                {/* Header Kartu Unit */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 font-mono text-sm">
+                      <span className="font-bold text-warm-text">{unit.kodeUnit}</span>
+                      <span className="text-warm-muted" aria-hidden="true">
+                        ·
+                      </span>
+                      <span className="text-xs text-warm-muted truncate">{unit.kategori}</span>
+                    </div>
+                    <div className="font-semibold text-sm text-warm-text mt-0.5 truncate">
+                      {unit.modelUnit}
+                    </div>
+                    <div className="text-xs text-warm-muted truncate">
+                      {unit.site} · {unit.operator}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-mono text-[11px] font-semibold ${opStatusClass}`}
+                    >
+                      {unit.statusOperasi}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-warm-muted" />
+                  </div>
+                </div>
+
+                {/* Strip 4 Metrik Kunci */}
+                <div className="grid grid-cols-3 gap-2 bg-warm-panel/70 border border-warm-border/70 rounded-xl p-2.5 font-mono tabular-nums">
+                  <div>
+                    <div className="text-[10px] text-warm-muted">PA / MA</div>
+                    <div className="text-xs font-bold mt-0.5">
+                      <span className={metrics.pa < metrics.targetPA ? 'text-red-700' : 'text-emerald-700'}>
+                        {fmtDec1.format(metrics.pa)}%
+                      </span>
+                      <span className="text-warm-muted font-normal">
+                        {' '}
+                        / {fmtDec1.format(metrics.ma)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-warm-muted">HM Pakai</div>
+                    <div className="text-xs font-bold text-warm-text mt-0.5">
+                      {formatHM(metrics.hmTerpakai)} HM
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-warm-muted">Fuel Ratio</div>
+                    <div className={`text-xs font-bold mt-0.5 ${fuelColor}`}>
+                      {fmtDec2.format(metrics.fuelRatio)} L/H
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Servis + Tombol Aksi Sentuh (44px) */}
+                <div
+                  className="flex flex-wrap items-center justify-between gap-2 pt-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="font-mono">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border tabular-nums ${pmStatusClass}`}
+                    >
+                      {pmStatusText}
+                    </span>
+                    <span className="block text-[10px] text-warm-muted mt-0.5 tabular-nums">
+                      Due HM {formatHM(metrics.dueHM)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onOpenDailyLog(unit.id)}
+                      className="min-h-[40px] px-3 py-1.5 rounded-xl font-mono text-xs font-bold bg-emerald-50 active:bg-emerald-100 text-forest border border-emerald-200 cursor-pointer whitespace-nowrap"
+                    >
+                      + Log
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenServiceComplete(unit.id)}
+                      className="min-h-[40px] px-3 py-1.5 rounded-xl font-mono text-xs font-bold bg-amber-50 active:bg-amber-100 text-amber-800 border border-amber-200 cursor-pointer whitespace-nowrap"
+                    >
+                      Servis
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDuplicateUnit(unit.id)}
+                      className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-warm-muted active:bg-warm-panel border border-warm-border cursor-pointer"
+                      aria-label={`Duplikat ${unit.kodeUnit}`}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteUnit(unit.id)}
+                      className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-warm-muted hover:text-red-700 active:bg-red-50 border border-warm-border cursor-pointer"
+                      aria-label={`Hapus ${unit.kodeUnit}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* DESKTOP TABLE (md dan ke atas) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[940px]">
           <thead>
             <tr className="bg-warm-panel/60 border-b border-warm-border font-mono text-[11px] text-warm-muted">
@@ -316,7 +471,7 @@ export function FleetTable({
           <button
             type="button"
             onClick={onResetFilters}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-forest text-white hover:bg-forest-light cursor-pointer transition-colors whitespace-nowrap"
+            className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold bg-forest text-white hover:bg-forest-light cursor-pointer transition-colors whitespace-nowrap"
           >
             Tampilkan Semua Unit
           </button>

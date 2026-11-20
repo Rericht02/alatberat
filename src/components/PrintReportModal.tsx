@@ -96,7 +96,7 @@ export function PrintReportModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-[2px] p-3 sm:p-5 overflow-y-auto print-modal-backdrop"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/65 backdrop-blur-[2px] p-0 sm:p-5 overflow-y-auto print-modal-backdrop"
       role="dialog"
       aria-modal="true"
       aria-labelledby="print-modal-title"
@@ -104,7 +104,7 @@ export function PrintReportModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-warm-card rounded-2xl border border-warm-border shadow-2xl max-w-5xl w-full my-auto overflow-hidden flex flex-col max-h-[92vh] print-modal-shell">
+      <div className="bg-warm-card rounded-t-3xl sm:rounded-2xl border border-warm-border shadow-2xl max-w-5xl w-full sm:my-auto overflow-hidden flex flex-col max-h-[94dvh] print-modal-shell">
         {/* Header Modal (Disembunyikan saat print) */}
         <div className="bg-forest px-5 py-4 sm:px-6 text-white flex flex-wrap items-center justify-between gap-3 shrink-0 no-print">
           <div className="flex items-center gap-3">
@@ -154,11 +154,11 @@ export function PrintReportModal({
             </label>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleDownloadPDF}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-safety-orange hover:bg-safety-orange-hover text-white transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              className="col-span-2 sm:col-span-1 min-h-[44px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-bold bg-safety-orange hover:bg-safety-orange-hover text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
             >
               <FileDown className="w-4 h-4 shrink-0" />
               <span>Unduh PDF (A4)</span>
@@ -166,15 +166,15 @@ export function PrintReportModal({
             <button
               type="button"
               onClick={handleDownloadHTML}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-warm-bg text-warm-text border border-warm-border transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              className="min-h-[44px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-warm-bg text-warm-text border border-warm-border transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
             >
               <FileCode2 className="w-4 h-4 text-forest shrink-0" />
-              <span>Unduh HTML Cetak</span>
+              <span>HTML Cetak</span>
             </button>
             <button
               type="button"
               onClick={handleDirectPrint}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-forest hover:bg-forest-light text-white transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+              className="min-h-[44px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-forest hover:bg-forest-light text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
             >
               <Printer className="w-4 h-4 shrink-0" />
               <span>Cetak Langsung</span>

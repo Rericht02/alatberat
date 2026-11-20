@@ -85,7 +85,7 @@ export function DailyLogModal({ unit, onClose, onSubmit }: DailyLogModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4 no-print"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[2px] p-0 sm:p-4 no-print"
       role="dialog"
       aria-modal="true"
       aria-labelledby="daily-log-modal-title"
@@ -93,7 +93,7 @@ export function DailyLogModal({ unit, onClose, onSubmit }: DailyLogModalProps) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-2xl border border-warm-border shadow-2xl max-w-lg w-full overflow-hidden">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl border border-warm-border shadow-2xl max-w-lg w-full max-h-[92dvh] flex flex-col overflow-hidden">
         <div className="bg-forest px-5 py-3.5 text-white flex items-center justify-between">
           <div>
             <h3 id="daily-log-modal-title" className="font-mono font-bold text-sm sm:text-base">
@@ -113,7 +113,7 @@ export function DailyLogModal({ unit, onClose, onSubmit }: DailyLogModalProps) {
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label
@@ -269,18 +269,18 @@ export function DailyLogModal({ unit, onClose, onSubmit }: DailyLogModalProps) {
           </div>
         </div>
 
-        <div className="px-5 py-3.5 bg-warm-panel border-t border-warm-border flex justify-end gap-2">
+        <div className="px-4 sm:px-5 py-3.5 bg-warm-panel border-t border-warm-border grid grid-cols-2 sm:flex justify-end gap-2 shrink-0 pb-safe">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-warm-muted hover:bg-white border border-warm-border cursor-pointer whitespace-nowrap shrink-0 transition-colors"
+            className="min-h-[44px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-semibold text-warm-muted hover:bg-white border border-warm-border cursor-pointer whitespace-nowrap shrink-0 transition-colors"
           >
             Batal
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-forest hover:bg-forest-light shadow-sm cursor-pointer whitespace-nowrap shrink-0 transition-colors"
+            className="min-h-[44px] sm:min-h-0 px-4 py-2 rounded-xl text-xs font-bold text-white bg-forest hover:bg-forest-light shadow-sm cursor-pointer whitespace-nowrap shrink-0 transition-colors"
           >
             Simpan Log Harian
           </button>

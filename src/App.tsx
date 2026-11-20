@@ -5,6 +5,7 @@ import { DailyLogModal, type DailyLogPayload } from './components/DailyLogModal'
 import { FleetHeader } from './components/FleetHeader';
 import { FleetSummaryKpis } from './components/FleetSummaryKpis';
 import { FleetTable } from './components/FleetTable';
+import { MobileBottomNav, type MobileTab } from './components/MobileBottomNav';
 import { PrintReportModal } from './components/PrintReportModal';
 import {
   ServiceCompleteModal,
@@ -23,6 +24,7 @@ import type {
 } from './types/fleet';
 import {
   backupFleetToJSON,
+  computeUnitMetrics,
   exportFleetToCSV,
   fmtDec1,
   fmtInt,
@@ -46,6 +48,7 @@ export default function App() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [dailyLogUnitId, setDailyLogUnitId] = useState<string | null>(null);
   const [serviceModalUnitId, setServiceModalUnitId] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('armada');
 
   const restoreInputRef = useRef<HTMLInputElement | null>(null);
   const saveTimerRef = useRef<number | null>(null);
@@ -101,6 +104,26 @@ export default function App() {
     () => appState.fleet.find((u) => u.id === serviceModalUnitId) ?? null,
     [appState.fleet, serviceModalUnitId]
   );
+
+  const serviceAlertCount = useMemo(() => {
+    return appState.fleet.reduce((acc, unit) => {
+      const m = computeUnitMetrics(unit, appState.hargaSolarGlobal);
+      return acc + (m.serviceState === 'OVERDUE' || m.serviceState === 'SOON' ? 1 : 0);
+    }, 0);
+  }, [appState.fleet, appState.hargaSolarGlobal]);
+
+  const handleSelectUnitFromList = useCallback((unitId: string) => {
+    setAppState((prev) => ({ ...prev, activeUnitId: unitId }));
+    if (window.innerWidth < 768) {
+      setMobileTab('kalkulator');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
+  const handleSelectMobileTab = useCallback((tab: MobileTab) => {
+    setMobileTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   const handleUpdateUnit = useCallback((unitId: string, patch: Partial<HeavyUnit>) => {
     setAppState((prev) => ({
@@ -363,7 +386,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-warm-bg text-warm-text p-3 sm:p-5 lg:p-6">
+    <div className="min-h-screen bg-warm-bg text-warm-text px-3 pt-3 pb-24 sm:p-5 lg:p-6 md:pb-6">
       <input
         ref={restoreInputRef}
         type="file"
@@ -373,7 +396,7 @@ export default function App() {
       />
 
       <div
-        className={`max-w-[1440px] mx-auto space-y-5 print-container ${
+        className={`max-w-[1440px] mx-auto space-y-4 sm:space-y-5 print-container ${
           isPrintModalOpen ? 'no-print' : ''
         }`}
       >
@@ -396,45 +419,64 @@ export default function App() {
           onResetFleet={handleResetFleet}
         />
 
-        <FleetSummaryKpis
-          fleet={appState.fleet}
-          hargaSolarGlobal={appState.hargaSolarGlobal}
-          isServiceFilterActive={statusFilter === 'NEED_SERVICE'}
-          onFilterServiceAlerts={handleToggleServiceAlertFilter}
-        />
-
-        <FleetTable
-          fleet={appState.fleet}
-          activeUnitId={activeUnit?.id ?? ''}
-          hargaSolarGlobal={appState.hargaSolarGlobal}
-          searchQuery={searchQuery}
-          categoryFilter={categoryFilter}
-          statusFilter={statusFilter}
-          onSearchChange={setSearchQuery}
-          onCategoryFilterChange={setCategoryFilter}
-          onStatusFilterChange={setStatusFilter}
-          onResetFilters={handleResetFilters}
-          onSelectUnit={(unitId) =>
-            setAppState((prev) => ({ ...prev, activeUnitId: unitId }))
-          }
-          onOpenDailyLog={(unitId) => setDailyLogUnitId(unitId)}
-          onOpenServiceComplete={(unitId) => setServiceModalUnitId(unitId)}
-          onDuplicateUnit={handleDuplicateUnit}
-          onDeleteUnit={handleDeleteUnit}
-        />
-
-        {activeUnit && (
-          <UnitDetailPanel
-            unit={activeUnit}
+        {/* Tab Armada di Mobile (Selalu tampil di Desktop md+) */}
+        <div className={`space-y-4 sm:space-y-5 ${mobileTab === 'armada' ? 'block' : 'hidden md:block'}`}>
+          <FleetSummaryKpis
+            fleet={appState.fleet}
             hargaSolarGlobal={appState.hargaSolarGlobal}
-            onUpdateUnit={handleUpdateUnit}
+            isServiceFilterActive={statusFilter === 'NEED_SERVICE'}
+            onFilterServiceAlerts={handleToggleServiceAlertFilter}
+          />
+
+          <FleetTable
+            fleet={appState.fleet}
+            activeUnitId={activeUnit?.id ?? ''}
+            hargaSolarGlobal={appState.hargaSolarGlobal}
+            searchQuery={searchQuery}
+            categoryFilter={categoryFilter}
+            statusFilter={statusFilter}
+            onSearchChange={setSearchQuery}
+            onCategoryFilterChange={setCategoryFilter}
+            onStatusFilterChange={setStatusFilter}
+            onResetFilters={handleResetFilters}
+            onSelectUnit={handleSelectUnitFromList}
             onOpenDailyLog={(unitId) => setDailyLogUnitId(unitId)}
             onOpenServiceComplete={(unitId) => setServiceModalUnitId(unitId)}
             onDuplicateUnit={handleDuplicateUnit}
             onDeleteUnit={handleDeleteUnit}
           />
+        </div>
+
+        {/* Tab Kalkulator Unit di Mobile (Selalu tampil di Desktop md+) */}
+        {activeUnit && (
+          <div className={mobileTab === 'kalkulator' ? 'block' : 'hidden md:block'}>
+            <UnitDetailPanel
+              unit={activeUnit}
+              fleet={appState.fleet}
+              hargaSolarGlobal={appState.hargaSolarGlobal}
+              onSelectUnit={(unitId) =>
+                setAppState((prev) => ({ ...prev, activeUnitId: unitId }))
+              }
+              onUpdateUnit={handleUpdateUnit}
+              onOpenDailyLog={(unitId) => setDailyLogUnitId(unitId)}
+              onOpenServiceComplete={(unitId) => setServiceModalUnitId(unitId)}
+              onDuplicateUnit={handleDuplicateUnit}
+              onDeleteUnit={handleDeleteUnit}
+            />
+          </div>
         )}
       </div>
+
+      <MobileBottomNav
+        activeTab={mobileTab}
+        activeUnitCode={activeUnit?.kodeUnit ?? 'Unit'}
+        alertCount={serviceAlertCount}
+        onSelectTab={handleSelectMobileTab}
+        onQuickDailyLog={() => {
+          if (activeUnit) setDailyLogUnitId(activeUnit.id);
+        }}
+        onOpenReport={() => setIsPrintModalOpen(true)}
+      />
 
       <AddUnitModal
         open={isAddUnitOpen}

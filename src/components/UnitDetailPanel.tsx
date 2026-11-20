@@ -22,7 +22,9 @@ import {
 
 interface UnitDetailPanelProps {
   unit: HeavyUnit;
+  fleet: HeavyUnit[];
   hargaSolarGlobal: number;
+  onSelectUnit: (unitId: string) => void;
   onUpdateUnit: (unitId: string, patch: Partial<HeavyUnit>) => void;
   onOpenDailyLog: (unitId: string) => void;
   onOpenServiceComplete: (unitId: string) => void;
@@ -53,6 +55,7 @@ function NumericInput({ id, value, min = 0, max, onCommit, className = '' }: Num
     <input
       id={id}
       type="number"
+      inputMode="decimal"
       min={min}
       max={max}
       step="any"
@@ -87,7 +90,9 @@ function NumericInput({ id, value, min = 0, max, onCommit, className = '' }: Num
 
 export function UnitDetailPanel({
   unit,
+  fleet,
   hargaSolarGlobal,
+  onSelectUnit,
   onUpdateUnit,
   onOpenDailyLog,
   onOpenServiceComplete,
@@ -97,10 +102,10 @@ export function UnitDetailPanel({
   const m = computeUnitMetrics(unit, hargaSolarGlobal);
 
   const inputBaseClass =
-    'w-full font-mono font-bold text-base tabular-nums text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20';
+    'w-full min-h-[44px] font-mono font-bold text-base tabular-nums text-warm-text bg-warm-input border border-warm-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20';
 
   const identityInputClass =
-    'w-full text-sm bg-white border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20';
+    'w-full min-h-[44px] md:min-h-0 text-base sm:text-sm bg-white border border-warm-border rounded-xl px-3 py-2 focus:outline-none focus:border-gold-focus focus:ring-2 focus:ring-gold-focus/20';
 
   const fuelBadgeConfig = {
     HEMAT: {
@@ -155,7 +160,31 @@ export function UnitDetailPanel({
       className="bg-warm-card rounded-2xl border border-warm-border overflow-hidden print-break-inside"
     >
       {/* Header Panel Unit Aktif */}
-      <div className="bg-forest px-5 py-4 sm:px-6 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div className="bg-forest px-4 py-4 sm:px-6 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        {/* Quick Unit Switcher Khusus Mobile */}
+        {fleet.length > 1 && (
+          <div className="md:hidden no-print">
+            <label
+              htmlFor="mobileUnitSwitcher"
+              className="block font-mono text-[11px] text-emerald-200/85 mb-1"
+            >
+              Ganti Unit Aktif
+            </label>
+            <select
+              id="mobileUnitSwitcher"
+              value={unit.id}
+              onChange={(e) => onSelectUnit(e.target.value)}
+              className="w-full min-h-[44px] bg-white/15 border border-white/25 rounded-xl px-3 py-2 font-mono text-sm font-bold text-white focus:outline-none focus:bg-white/20"
+            >
+              {fleet.map((u) => (
+                <option key={u.id} value={u.id} className="text-warm-text bg-white">
+                  {u.kodeUnit} — {u.modelUnit} ({u.statusOperasi})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-3 min-w-0">
           <div className="px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 font-mono font-bold text-base sm:text-lg tracking-wide text-emerald-200 shrink-0">
             {unit.kodeUnit}
@@ -178,11 +207,11 @@ export function UnitDetailPanel({
         </div>
 
         {/* Tombol Aksi Cepat Unit Aktif */}
-        <div className="flex flex-wrap items-center gap-2 no-print">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 no-print">
           <button
             type="button"
             onClick={() => onOpenDailyLog(unit.id)}
-            className="px-3.5 py-2 rounded-xl font-mono text-xs font-bold bg-emerald-400 hover:bg-emerald-300 text-forest-dark transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            className="min-h-[44px] sm:min-h-0 px-3.5 py-2 rounded-xl font-mono text-xs font-bold bg-emerald-400 hover:bg-emerald-300 text-forest-dark transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
           >
             <CalendarPlus className="w-3.5 h-3.5 shrink-0" />
             <span>Input Log Harian</span>
@@ -190,15 +219,15 @@ export function UnitDetailPanel({
           <button
             type="button"
             onClick={() => onOpenServiceComplete(unit.id)}
-            className="px-3.5 py-2 rounded-xl font-mono text-xs font-bold bg-white/15 hover:bg-white/25 text-white border border-white/25 transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            className="min-h-[44px] sm:min-h-0 px-3.5 py-2 rounded-xl font-mono text-xs font-bold bg-white/15 hover:bg-white/25 text-white border border-white/25 transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
           >
             <Wrench className="w-3.5 h-3.5 shrink-0" />
-            <span>Catat Servis Selesai</span>
+            <span>Servis Selesai</span>
           </button>
           <button
             type="button"
             onClick={() => onDuplicateUnit(unit.id)}
-            className="px-3 py-2 rounded-xl font-mono text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            className="min-h-[44px] sm:min-h-0 px-3 py-2 rounded-xl font-mono text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
           >
             <Copy className="w-3.5 h-3.5 shrink-0" />
             <span>Duplikat</span>
@@ -206,7 +235,7 @@ export function UnitDetailPanel({
           <button
             type="button"
             onClick={() => onDeleteUnit(unit.id)}
-            className="px-3 py-2 rounded-xl font-mono text-xs font-semibold bg-red-500/25 hover:bg-red-500/40 text-red-100 border border-red-400/30 transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            className="min-h-[44px] sm:min-h-0 px-3 py-2 rounded-xl font-mono text-xs font-semibold bg-red-500/25 hover:bg-red-500/40 text-red-100 border border-red-400/30 transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
           >
             <Trash2 className="w-3.5 h-3.5 shrink-0" />
             <span>Hapus</span>
